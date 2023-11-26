@@ -30,6 +30,8 @@ if st.button("submit"):
 
     # Commit the changes
     conn.commit()
+    
+if st.button("show"):
 
     # Query data
     cursor.execute('SELECT * FROM mylist')
