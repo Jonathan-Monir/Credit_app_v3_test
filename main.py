@@ -37,7 +37,7 @@ if st.button("submit"):
 
     # Print the results
     for row in rows:
-        print(row)
+        st.write(row)
 
     # Close the connection
     conn.close()
