@@ -1,7 +1,9 @@
 
-class invoice:
-    def __init__(self, input_dict):
-        self.input_dict = input_dict
+class InvoiceMapping:
+    def __init__(self, statment):
+        self.statment =  statment
+        self.start = statment.loc[0, "first date"]
+        self.end = statment.loc[0, "second date"]
+    def valid_dates(self, Contracts):
         
-    def valid_dates(self):
         pass

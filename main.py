@@ -1,46 +1,15 @@
-import contract
+from contract import Contract
 import price_cost
 import invoice
-import file_uploader
+from file_uploader import FileUploader
 import sqlite3
 import streamlit as st
+import time
 
-# Connect to a SQLite database (or create one if it doesn't exist)
-conn = sqlite3.connect('example.db')
+uploader = FileUploader('test files\Biblio- Siva.xlsx')
 
-# Create a cursor object to interact with the database
-cursor = conn.cursor()
-
-# Create a table to store the list
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS mylist (
-        id INTEGER PRIMARY KEY,
-        value INTEGER NOT NULL
-    )
-''')
-
-value = st.number_input("input",1,5)
-
-if st.button("submit"):
+contract_sheets = uploader.contract_sheets
+statment_sheet = uploader.statment
+Contracts = {key: Contract(value) for key, value in contract_sheets.items()}
     
-    # Insert data into the table
-    values = range(value)
-    for value in values:
-        cursor.execute('INSERT INTO mylist (value) VALUES (?)', (value,))
-
-    # Commit the changes
-    conn.commit()
-    
-if st.button("show"):
-
-    # Query data
-    cursor.execute('SELECT * FROM mylist')
-    rows = cursor.fetchall()
-
-    # Print the results
-    for row in rows:
-        st.write(row)
-
-    # Close the connection
-    conn.close()
-
+print(statment_sheet.columns)
