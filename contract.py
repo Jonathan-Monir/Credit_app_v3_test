@@ -15,6 +15,6 @@ class Contract:
         """
         self.dataframe = dataframe
         self.start_date = dataframe.loc[0, "first date"]
-        self.end_date = dataframe.loc[0, "second date"]
+        self.end_date = dataframe.iloc[-1]["second date"]
         self.index = Contract.global_index
         Contract.global_index += 1

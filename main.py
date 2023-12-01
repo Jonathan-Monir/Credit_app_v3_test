@@ -1,15 +1,20 @@
+import time
 from contract import Contract
 import price_cost
-import invoice
+from invoice import InvoiceMapping
 from file_uploader import FileUploader
 import sqlite3
 import streamlit as st
-import time
+start_time = time.time()
 
-uploader = FileUploader('test files\Biblio- Siva.xlsx')
+
+uploader = FileUploader('test files\Biblio- Resort 23-24.xlsx')
 
 contract_sheets = uploader.contract_sheets
-statment_sheet = uploader.statment
 Contracts = {key: Contract(value) for key, value in contract_sheets.items()}
-    
-print(statment_sheet.columns)
+statment_sheet = uploader.statment
+print(InvoiceMapping(statment_sheet).valid_contracts)
+
+end_time = time.time()
+execution_time = end_time - start_time
+print(f"Execution time: {execution_time} seconds")
