@@ -46,3 +46,34 @@ class FileUploader:
         except Exception as e:
             print(f"Error in reading sheet names: {e}")
             return None
+    
+    def insert_key_after(self):
+        # Create a new OrderedDict
+        all_indices = []
+
+        # Iterate through the original OrderedDict
+        for key, contract in self.contract_sheets.items():
+            
+            compared_contract = contract.copy()
+            compared_contract['first date'] = contract['first date'].shift(-1)
+            
+            compared_contract = compared_contract.drop(compared_contract.index[-1])
+            
+            compared_contract['days'] = abs((compared_contract['first date'] - compared_contract['second date']).dt.days)
+            if key == "spo 12.7":
+                pass
+            indices = compared_contract[compared_contract['days'] > 1].index.tolist()
+            if len(indices) > 0:
+                
+                for i in range(len(indices)):
+                    if i == 0:
+                        cut_contract = contract.iloc[:indices[i]+1]
+                        
+                    if i == len(indices) - 1:
+                        cut_contract = contract.iloc[indices[i]+1:]
+                        
+                    else:
+                        cut_contract = contract.iloc[indices[i]+1:indices[i+1]+1]
+                        
+            all_indices.append(indices)
+        return all_indices
