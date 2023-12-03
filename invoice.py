@@ -1,23 +1,36 @@
 from contract import Contract
 from file_uploader import FileUploader
 import pandas as pd
+import numpy as np
 
-uploader = FileUploader('test files\Biblio- Siva.xlsx')
-contract_sheets = uploader.contract_sheets
-Contracts = {key: Contract(value) for key, value in contract_sheets.items()}
 class InvoiceMapping:
-    def __init__(self, statment):
+    def __init__(self, statment, Contracts):
         self.statment =  statment
+        self.Contracts = Contracts
+        
         self.reservation_date = statment["Res_date"]
         self.Arrival = statment["Arrival"]
         self.Departure = statment["Departure"]
-        self.valid_contracts = self.validate_contract()
+        self.room_type = statment["Rate code"]
         
-    def validate_contract(self):
-        validity_condition = {
-            key: (contract.start_date <= self.statment['Res_date']) & (self.statment['Res_date'] <= contract.end_date)
-            for key, contract in Contracts.items()
-        }
+        self.test = np.vectorize(self.compute_days)(self.Arrival,self.Departure,self.room_type,self.reservation_date)
+        
+    def validate_contract(self,reservation_date):
+        valid_contracts = {}
+        
+        for key,contract in reversed(self.Contracts.items()):
+            if contract.start_date <= reservation_date and contract.end_date >= reservation_date:
+                valid_contracts[key] = contract
 
-        return pd.DataFrame(validity_condition)
-        
+        return valid_contracts
+    def compute_days(self,Arrival,Departure,room_type,reservation_date):
+        valid_contracts = self.validate_contract(reservation_date)
+        for key,Contract in valid_contracts.items():
+            print("key: ",key)
+            print("Arrival: ",Arrival)
+            print("Departure: ",Departure)
+            self.days_prices_calc(Arrival,Departure,room_type,Contract.dataframe)
+    def days_prices_calc(self,Arrival,Departure,room_type,contract):
+        filtered_contract = contract[(contract['second date'] > Arrival) & (contract['first date'] < Departure)]
+        print(filtered_contract)
+        return filtered_contract
