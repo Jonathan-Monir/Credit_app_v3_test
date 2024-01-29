@@ -71,12 +71,24 @@ class FileUploader:
         return statment_fix
 
     def fix_overlap(self, df):
-        for sheet_name, sheet_data in df.items():
+        dictionary_items = df.copy().items()
+
+        for sheet_name, sheet_data in dictionary_items:
+            last_fixed_index = 0
+            part = 0
+            overlap = False
+            
             if sheet_name != "statment":
                 for row_index in range(len(sheet_data['second date'])-1):
                     if abs(sheet_data['second date'].iloc[row_index] - sheet_data['first date'][row_index+1]).days > 1:
-                        # print(sheet_data.iloc[:row_index+1,:])
-                        pass
+                        overlap = True
+                        df[sheet_name + " part: "+ str(part)] = sheet_data.iloc[last_fixed_index:row_index+1,:]
+                        last_fixed_index = row_index + 1
+                        part += 1
+                if overlap:
+                    df[sheet_name + " part: "+ str(part)] = sheet_data.iloc[last_fixed_index:]
+                    del df[sheet_name]
+        return df
     
     def check_statment(self, statment):
 
@@ -92,10 +104,7 @@ class FileUploader:
             # Drop the null rows and reset the index
             statment = statment.dropna().reset_index(drop=True)
         
-        
-        columns_emtpy_to_fix = ["Rate code"]
-        for column in columns_emtpy_to_fix:
-            self.fix_empty(statment, column)
+        statment = self.fix_empty(statment, "Rate code")
 
         columns_dates_to_fix = ["Res_date","Arrival","Departure"]
         for column in columns_dates_to_fix:
@@ -120,7 +129,7 @@ class FileUploader:
                 active = ~(contract["activity"] == 0).any()
                 df[sheet_name], contracts_activity[sheet_name] = contract, active
 
-        self.fix_overlap(df)
+        df = self.fix_overlap(df)
         return df, contracts_activity
     
     def fix_file(self):

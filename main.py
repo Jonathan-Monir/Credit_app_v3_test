@@ -14,6 +14,6 @@ warnings.filterwarnings("ignore")
 
 df = FileUploader(r"test files\test.xlsx")
 df.final_dict['contracts_activity'] = df.contracts_activity
-print(df.final_dict['statment'])
+print(df.final_dict.keys())
 
 # df.final_dict['statment'].to_excel('output_file.xlsx', index=False)
