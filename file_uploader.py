@@ -1,6 +1,7 @@
 
 import pandas as pd
 import numpy as np
+
 class FileUploader:
     def __init__(self, filepath):
         self.filepath = filepath
