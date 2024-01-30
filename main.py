@@ -1,6 +1,6 @@
 from contract import Contract
 from price_cost import Calculate
-import invoice
+from invoice import Invoice
 from file_uploader import FileUploader
 import sqlite3
 import streamlit as st
@@ -17,6 +17,6 @@ df.final_dict['contracts_activity'] = df.contracts_activity
 df_dict = df.final_dict
 # print(df.final_dict.keys())
 # df.final_dict['statment'].to_excel('output_file.xlsx', index=False)
-
-contract = Contract(df_dict["contract"])
-print(contract.end_date)
+statment = df_dict['statment']
+contract = df_dict['contract']
+invoice = Invoice().oneContractDates(statment.iloc[0,:],contract)
