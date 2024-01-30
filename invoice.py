@@ -1,7 +1,13 @@
 
 class invoice:
-    def __init__(self, input_dict):
-        self.input_dict = input_dict
-        
-    def valid_dates(self):
+    def __init__(self, statment, contracts):
+        self.statment = statment
+        self.contracts = contracts
+    def oneContractDates(self):
+        pass
+
+    def allContractsDates(self):
+        pass
+
+    def combineDates(self):
         pass
