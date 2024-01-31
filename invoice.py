@@ -60,6 +60,8 @@ class Invoice:
                     for contract_name, contract_object in reversed(self.contracts.items()):
                         
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:
+                            if not(contract_object.activity):
+                                invoice["activity"] = 0
                             new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet)
                             if index ==29:
                                 print(contract_name)
