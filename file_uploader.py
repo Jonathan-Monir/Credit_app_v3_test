@@ -1,13 +1,16 @@
 
 import pandas as pd
 import numpy as np
+from contract import Contract
 
 class FileUploader:
+    
     def __init__(self, filepath):
         self.filepath = filepath
-        self.final_dict = self.fix_file()[0]
-        self.contracts_activity = self.fix_file()[1]
-        self.num_rows = self.final_dict["statment"].shape[0]
+        self.statment = self.fix_file()[0]
+        self.contracts_sheets = self.fix_file()[1]
+        self.contracts_activity = self.fix_file()[2]
+        self.num_rows = self.statment.shape[1]
 
     def to_df(self):
         # convert to excel
@@ -36,6 +39,7 @@ class FileUploader:
         
         # classify error in date to nulls
         df_date_fix["date_check"] = pd.to_datetime(df_date_fix[column], errors="coerce")
+        df_date_fix[column] = pd.to_datetime(df_date_fix[column])
         df_date_fix.loc[df_date_fix['date_check'].dt.year < 2012, 'date_check'] = np.nan
 
         # Identify rows with date errors and set "activity" to 0
@@ -116,11 +120,11 @@ class FileUploader:
         
         return statment
 
-    def check_contract(self, df):
-        
+    def check_contract(self, sheets):
+        contracts = {}
         contracts_activity = dict()
 
-        for sheet_name, sheet_data in df.items():
+        for sheet_name, sheet_data in sheets.items():
             if sheet_name != "statment":
                 
                 columns_dates_to_fix = ["first date","second date"]
@@ -128,30 +132,32 @@ class FileUploader:
                     contract = self.fix_date(sheet_data, column)
 
                 active = ~(contract["activity"] == 0).any()
-                df[sheet_name], contracts_activity[sheet_name] = contract, active
+                contracts[sheet_name], contracts_activity[sheet_name] = contract, active
 
-        df = self.fix_overlap(df)
-        return df, contracts_activity
+        contracts = self.fix_overlap(contracts)
+        return contracts, contracts_activity
+    
     
     def fix_file(self):
         
-        df = self.to_df()
+        sheets = self.to_df()
         
-        df["statment"]["activity"] = 1
-        df["statment"]["error_type"] = ""
+        sheets["statment"]["activity"] = 1
+        sheets["statment"]["error_type"] = ""
 
 
-        for sheet_name, sheet_data in df.items():
-            df[sheet_name] = sheet_data.dropna(axis=1, how="all")
-            df[sheet_name]["activity"] = 1
-            df[sheet_name]["error_type"] = ""
+        for sheet_name, sheet_data in sheets.items():
+            sheets[sheet_name] = sheet_data.dropna(axis=1, how="all")
+            sheets[sheet_name]["activity"] = 1
+            sheets[sheet_name]["error_type"] = ""
 
-        df["statment"] = self.check_statment(df["statment"])
+        sheets["statment"] = self.check_statment(sheets["statment"])
+        statment = sheets["statment"]
 
-        contracts_activity = {sheet_name: 1 for sheet_name, sheet_data in df.items() if sheet_name != "statment"}
+        contracts_activity = {sheet_name: 1 for sheet_name, sheet_data in sheets.items() if sheet_name != "statment"}
         
-        df, contracts_activity = self.check_contract(df)
-
-        return df, contracts_activity
+        contracts_sheets, contracts_activity = self.check_contract(sheets)
+        
+        return statment, contracts_sheets, contracts_activity
 
     

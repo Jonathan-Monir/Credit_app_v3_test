@@ -13,10 +13,8 @@ import warnings
 warnings.filterwarnings("ignore")
 
 df = FileUploader(r"test files\test.xlsx")
-df.final_dict['contracts_activity'] = df.contracts_activity
-df_dict = df.final_dict
-# print(df.final_dict.keys())
-# df.final_dict['statment'].to_excel('output_file.xlsx', index=False)
-statment = df_dict['statment']
-contract = df_dict['contract']
-invoice = Invoice().oneContractDates(statment.iloc[0,:],contract)
+statment = df.statment
+
+main_contract = df.contracts_sheets['contract']
+contracts_sheets = df.contracts_sheets
+invoice = Invoice(statment,contracts_sheets,df.contracts_activity).allContractsDates()
