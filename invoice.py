@@ -48,8 +48,8 @@ class Invoice:
             contract_dict[contract_name] = Contract(contract_name, contract_data, contract_activity[contract_name])
         return contract_dict
 
-    def allContractsDates(self):
-
+    def invoicesMetrices(self):
+        index_price_dict = {}
         for index, invoice in self.statment.iterrows():
             rate_code = invoice["Rate code"]
             date_range = pd.DataFrame(columns=["first date","second date",])
@@ -63,9 +63,6 @@ class Invoice:
                             if not(contract_object.activity):
                                 invoice["activity"] = 0
                             new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet)
-                            if index ==29:
-                                print(contract_name)
-                                print(new_date_range)
                             
                             date_range = pd.merge(date_range,new_date_range, how='outer')
 
@@ -74,11 +71,10 @@ class Invoice:
                                 date_range["Nights"] = (date_range["second date"] - date_range["first date"]) + pd.to_timedelta(1, unit='d')
                                 date_range["total price"] = (date_range["Nights"].dt.days * date_range[rate_code]).astype(float)
                                 
-                                if index == 29:
-                                    print("final date range")
-                                    print(date_range)
-                                    
+                                invoice_range = date_range
+                                index_price_dict[index] = sum(date_range["total price"])
                                 continue
+        return index_price_dict
                                 
 
 

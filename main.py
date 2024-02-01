@@ -17,4 +17,5 @@ statment = df.statment
 
 main_contract = df.contracts_sheets['contract']
 contracts_sheets = df.contracts_sheets
-invoice = Invoice(statment,contracts_sheets,df.contracts_activity).allContractsDates()
+prices = Invoice(statment,contracts_sheets,df.contracts_activity).invoicesMetrices()
+print(prices)
