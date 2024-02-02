@@ -39,7 +39,7 @@ class FileUploader:
         
         # classify error in date to nulls
         df_date_fix["date_check"] = pd.to_datetime(df_date_fix[column], errors="coerce")
-        df_date_fix[column] = pd.to_datetime(df_date_fix[column])
+        df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce")
         df_date_fix.loc[df_date_fix['date_check'].dt.year < 2012, 'date_check'] = np.nan
 
         # Identify rows with date errors and set "activity" to 0
@@ -137,7 +137,14 @@ class FileUploader:
         contracts = self.fix_overlap(contracts)
         return contracts, contracts_activity
     
-    
+    def initialize_offers(self,statment):
+        statment["earlyBooking1"] = 0
+        statment["earlyBooking2"] = 0
+        statment["longTerm"] = 0
+        statment["reduction1"] = 0
+        statment["reduction2"] = 0
+
+        
     def fix_file(self):
         
         sheets = self.to_df()

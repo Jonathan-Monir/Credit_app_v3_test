@@ -5,7 +5,8 @@ class Invoice:
     def __init__(self, statment, contracts_sheets,contract_activity):
         self.statment = statment
         self.contracts = self.make_contracts_dict(contracts_sheets,contract_activity)
-
+        self.prices = self.invoicesMetrics()[0]
+        self.Index_contract_date_range_dict = self.invoicesMetrics()[1]
     def oneContractDates(self,invoice, contract):
         first_date = contract.loc[0,"first date"]
         last_date = contract.loc[len(contract)-1,"second date"]
@@ -48,41 +49,101 @@ class Invoice:
             contract_dict[contract_name] = Contract(contract_name, contract_data, contract_activity[contract_name])
         return contract_dict
 
-    def invoicesMetrices(self):
+    def optimize_invoice_offers(self, invoice, contract_name, contract_object, date_range, last_day_removal=True):
+        if last_day_removal:
+            date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] - pd.to_timedelta(1, unit='d')
+
+        date_range["earlyBooking1"] = 0
+        date_range["earlyBooking2"] = 0
+        date_range["longTerm"] = 0
+        date_range["reduction1"] = 0
+        date_range["reduction2"] = 0
+        date_range["Nights"] = (date_range["second date"] - date_range["first date"]) + pd.to_timedelta(1, unit='d')
+        date_range["price"] = (date_range["Nights"].dt.days * date_range[invoice["Rate code"]]).astype(float)
+                                
+        # Offers
+        if contract_object.EarlyBooking1["enable"]:
+            invoice["earlyBooking1"] = (invoice["Res_date"] <= contract_object.EarlyBooking1["date"]) * (contract_object.EarlyBooking1["percentage"]/100)
+        date_range["earlyBooking1"] = -(invoice["earlyBooking1"] * date_range["price"])
+
+        if contract_object.EarlyBooking2["enable"]:
+            invoice["earlyBooking2"] = (invoice["Res_date"] < contract_object.EarlyBooking2["date"] and invoice["Res_date"] > contract_object.EarlyBooking1["date"]) * (contract_object.EarlyBooking2["percentage"]/100)
+        date_range["earlyBooking2"] = -(invoice["earlyBooking2"] * date_range["price"])
+
+        if contract_object.LongTerm["enable"]:
+            invoice["longTerm"] = ((invoice["Arrival"] - invoice["Departure"]).days >= contract_object.LongTerm["days"]) * (contract_object.LongTerm["percentage"]/100)
+        date_range["longTerm"] = -(invoice["longTerm"] * date_range["price"])
+
+        date_range["total price"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
+
+        return date_range
+
+    def invoicesMetrics(self):
         index_price_dict = {}
+        Index_contract_date_range_dict = {}
+
         for index, invoice in self.statment.iterrows():
+            contract_date_range_dict = {}
             rate_code = invoice["Rate code"]
             date_range = pd.DataFrame(columns=["first date","second date",])
-            if invoice["activity"]:
-                
+            if self.statment.loc[index,"activity"]:
+                self.statment.loc[index,"error_type"]
                 while((invoice["Departure"]-invoice["Arrival"]).days != 0):
                     
                     for contract_name, contract_object in reversed(self.contracts.items()):
-                        
+                        if (invoice["Departure"]-invoice["Arrival"]).days == 0:
+                            break
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:
                             if not(contract_object.activity):
-                                invoice["activity"] = 0
+                                self.statment.loc[index,"activity"] = 0
+                                
+                                if (self.statment.loc[index,"error_type"]):
+                                    self.statment.loc[index,"error_type"] += ", "
+                                self.statment.loc[index,"error_type"] += "error in it's contract"
+                                
+                                break
+                            
+                            if not(invoice["Rate code"] in contract_object.contract_sheet.columns):
+                                
+                                self.statment.loc[index,"activity"] = 0
+                                
+                                if (self.statment.loc[index,"error_type"]):
+                                    self.statment.loc[index,"error_type"] += ", "
+                                self.statment.loc[index,"error_type"] += "error in rate code"
+                                
+                                break
+                            
                             new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet)
                             
                             date_range = pd.merge(date_range,new_date_range, how='outer')
 
+                            new_date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, new_date_range, False)
+                            
+                            contract_date_range_dict[contract_name] = new_date_range
+                    
+                            
+
                             if ((invoice["Departure"]-invoice["Arrival"]).days == 0):
-                                date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] - pd.to_timedelta(1, unit='d')
-                                date_range["Nights"] = (date_range["second date"] - date_range["first date"]) + pd.to_timedelta(1, unit='d')
-                                date_range["total price"] = (date_range["Nights"].dt.days * date_range[rate_code]).astype(float)
+                                date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, date_range, False)
+
+                                new_date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, new_date_range)
+
+                                contract_date_range_dict[contract_name] = new_date_range
                                 
-                                invoice_range = date_range
+                                
+                                Index_contract_date_range_dict[index] = contract_date_range_dict
+                                
                                 index_price_dict[index] = sum(date_range["total price"])
                                 continue
-        return index_price_dict
+                    
+                    if not(index in index_price_dict) and self.statment.loc[index,"activity"] == 1:
+                        self.statment.loc[index,"error_type"] += "reservation date not valid"
+                        self.statment.loc[index,"activity"] = 0
+                    break
+
+                if self.statment.loc[index,"activity"] == 0:
+                    
+                    continue
+
+        return index_price_dict, Index_contract_date_range_dict
                                 
-
-
-    def combineDates(self):
-        pass
-
-    def checkContractActivity(self):
-        pass
-
-    def finalInvoiceDictionary(self):
-        pass

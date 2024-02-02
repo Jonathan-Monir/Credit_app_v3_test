@@ -1,6 +1,14 @@
+import pandas as pd
 class Contract:
-    
-    def __init__(self, contract_name, contract_sheet, activity, EarlyBooking1=0, EarlyBooking2=0, LongTerm=0, Reduction1=0, Reduction2=0, combinations=0, start_date=None, end_date=None):
+    eb1 = {"enable":True,"percentage":10,"date":pd.to_datetime("01/11/2026")}
+    eb2 = {"enable":True,"percentage":10,"date":pd.to_datetime("01/11/2026")}
+    lt = {"enable":True,"percentage":10,"days":3}
+    reduc1 = {"enable":True,"column":"contract","percentage":10}
+    reduc2 = {"enable":True,"column":"contract","percentage":10}
+    extra = {"enable":False,"amount":100}
+    combinations = {"eb_lt":True,"eb_reduc":True}
+
+    def __init__(self, contract_name, contract_sheet, activity, EarlyBooking1=eb1, EarlyBooking2=eb2, LongTerm=lt, Reduction1=reduc1, Reduction2=reduc2, combinations=combinations, start_date=None, end_date=None):
         
         self.contract_name = contract_name
         self.contract_sheet = contract_sheet
