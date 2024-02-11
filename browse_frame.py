@@ -11,12 +11,20 @@ class MainFrame(ttk.Frame):
         super().__init__(parent)
         self.pack(expand=True, fill="both")
 
-        self.canvas = tk.Canvas(self, background="#F68497", scrollregion=(0,0,0,5000))
+        self.canvas = tk.Canvas(self, background="#F68497", scrollregion=(0,0,self.winfo_width(),800))
         self.canvas.pack(expand=True, fill='both')
 
         self.welcome = Welcome(self)
         ttk.Label(self.welcome).pack()
-        self.canvas.create_window((-1,0), window = self.welcome, anchor='nw', width=598, height=270)
+        self.canvas.create_window((-1,0), window = self.welcome, anchor='nw', width=self.winfo_width(), height=270)
+        
+        # events
+        self.canvas.bind_all('<MouseWheel>', lambda event: self.canvas.yview_scroll(-int(event.delta / 60),'units'))
+        self.bind('<Configure>', self.update_size)
+
+    def update_size(self, event):
+        self.canvas.create_window((-1,0), window = self.welcome, anchor='nw', width=self.winfo_width(), height=270)
+        
 
 class ExcelFileBrowserApp:
     def __init__(self, root):
