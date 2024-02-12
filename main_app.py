@@ -1,16 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
-from browse_frame import MainFrame
+from browse_frame import MainFrame, SetupContract
 
 class ToggleMenu(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
-        self.parent = parent  # Store parent reference
-
-        self.current_page = None  # Keep track of the currently displayed page
-
-
+        self.configure(highlightbackground="blue", highlightthickness=2)
+        self.parent = parent
+        self.current_page_name = None  # Store the name of the current page
+        self.pages = {}  # Store created pages to avoid recreation
 
         # Create menu buttons with clear labels and functionality
         self.browse_button = ttk.Button(self, text="Browse", command=self.show_browse)
@@ -27,30 +26,23 @@ class ToggleMenu(tk.Frame):
         self.pack(fill=tk.X, expand=False)  # Pack the menu at the top without expansion
         self.show_browse()
 
-        
+    def show_page(self, page_name):
+        if self.current_page_name:
+            self.pages[self.current_page_name].pack_forget()  # Hide current page
+        self.current_page_name = page_name
+    
+        if page_name not in self.pages:
+
+                self.pages[page_name] = globals()[page_name](self.parent)  # Create page if not yet created
+                
+        self.pages[page_name].pack(fill=tk.BOTH, expand=True)  # Show the desired page
 
     def show_browse(self):
-        if self.current_page is not None:
-            self.current_page.destroy()  # Destroy previous page
-        self.current_page = MainFrame(self.parent)  # Create new browse page
-        self.current_page.pack(fill=tk.BOTH, expand=True)  # Pack to fill parent frame
-        
-    def show_setup_contract(self):
-        # Similar logic for showing Setup Contract, replace with your actual content
-        if self.current_page is not None:
-            self.current_page.destroy()  # Destroy previous page
-        self.current_page = tk.Frame(self.parent)  # Create new Setup Contract frame
-        self.current_page.pack(fill=tk.BOTH, expand=True)  # Pack to fill parent frame
+        self.show_page("MainFrame")
 
-        # Add 3 buttons to Setup Contract with clear labels and functionality
-        button1 = ttk.Button(self.current_page, text="Button 1", command=self.setup_contract_button1_action)
-        # Arrange buttons horizontally or vertically as desired
-        # Example: Arrange horizontally with padding
-        button1.pack(side=tk.LEFT, padx=5, pady=5)
-        # Replace these with your actual button actions
-    def setup_contract_button1_action():
-        print("Setup Contract")
-        pass
+    def show_setup_contract(self):
+        self.show_page("SetupContract")  # Use a descriptive name for the page
+
 
 class App(tk.Tk):
     def __init__(self):
@@ -58,7 +50,8 @@ class App(tk.Tk):
         self.title("INVO")
         self.geometry("600x600")
         self.minsize(600, 600)
-
+        # self.attributes('-fullscreen', True)
+        
         self.toggle_menu = ToggleMenu(self)  # Create the toggle menu
 
         # Create quit button

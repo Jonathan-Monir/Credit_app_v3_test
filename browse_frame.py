@@ -5,11 +5,17 @@ from tkinter import filedialog
 from tkinter.filedialog import askopenfilenames
 import pandas as pd
 from tkinter import Scrollbar
+from file_uploader import FileUploader
+
+
 
 class MainFrame(ttk.Frame):
     def __init__(self,parent):
         super().__init__(parent)
         self.pack(expand=True, fill="both")
+
+        global container
+        container = []
 
         self.canvas = tk.Canvas(self, background="#F68497", scrollregion=(0,0,self.winfo_width(),800))
         self.canvas.pack(expand=True, fill='both')
@@ -60,48 +66,56 @@ class ExcelFileBrowserApp:
         for file_path in file_paths:
             self.files.append(file_path)
             self.listbox.insert(tk.END, file_path.split('/')[-1])
-        global dfs
-        dfs = [pd.read_excel(file_path) for file_path in self.files]
+        global container
+        container =  [FileUploader(file_path) for file_path in self.files]
         
     def remove_selected_files(self):
         selected_indices = self.listbox.curselection()
         for i in selected_indices[::-1]:  # Reversing the list to avoid shifting indexes
             self.listbox.delete(i)
             del self.files[i]
+            del container[i]
 
-    
 class Welcome(ttk.Frame):
     def __init__(self,parent):
         super().__init__(parent)
 
 
         self.pack(expand=True,fill='both')
-        # self.create_widgets()
         ExcelFileBrowserApp(self)
 
-    def browseFiles(self):
-        filenames = filedialog.askopenfilenames(initialdir = "/",
-                                            title = "Select a File",
-                                            filetypes = (("Text files",
-                                                            "*.xlsx*"),
-                                                        ("all files",
-                                                            "*.*")))
+##########################################################################################################
 
-        
 
-    def create_widgets(self):
-        lista = []
-        button_explore = ttk.Button(self, 
-                        text = "Browse Files",
-                        command = self.browseFiles) 
-        
-        
-        button_exit = ttk.Button(self, 
-                            text = "Exit",
-                            command = exit) 
 
-        button_explore.place(x=0,y=30)
+class SetupContract(ttk.Frame):
+    def __init__(self,parent):
+        super().__init__(parent)
+        self.pack(expand=True, fill="both")
+
+        self.canvas = tk.Canvas(self, background="red", scrollregion=(0,0,self.winfo_width(),800))
+        self.canvas.pack(expand=True, fill='both')
+
+        self.contract_setting = ContractSetting(self)
+        ttk.Label(self.contract_setting).pack()
+        self.canvas.create_window((-1,0), window = self.contract_setting, anchor='nw', width=self.winfo_width(), height=270)
         
-        button_exit.place(x=0,y=50)
+        # events
+        self.canvas.bind_all('<MouseWheel>', lambda event: self.canvas.yview_scroll(-int(event.delta / 60),'units'))
+        self.bind('<Configure>', self.update_size)
+
+
+    def update_size(self, event):
+        self.canvas.create_window((-1,0), window = self.contract_setting, anchor='nw', width=self.winfo_width(), height=270)
         
+    
+class ContractSetting(ttk.Frame):
+    def __init__(self,parent):
+        super().__init__(parent)
+
+        self.browse_button = tk.Button(self, text="Browse", command=self.print_dfs)
+        self.browse_button.pack(side=tk.LEFT)
         
+        self.pack(expand=True,fill='both')
+    def print_dfs(self):
+        print(container)

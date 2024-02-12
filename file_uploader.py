@@ -7,6 +7,7 @@ class FileUploader:
     
     def __init__(self, filepath):
         self.filepath = filepath
+        self.filename = filepath.split('/')[-1]
         self.statment = self.fix_file()[0]
         self.contracts_sheets = self.fix_file()[1]
         self.contracts_activity = self.fix_file()[2]
