@@ -2,11 +2,17 @@ import pandas as pd
 from contract import Contract
 
 class Invoice:
-    def __init__(self, statment, contracts_sheets,contract_activity):
-        self.statment = statment
-        self.contracts = self.make_contracts_dict(contracts_sheets,contract_activity)
+    def __init__(self, df, offers_dict):
+        self.df = df
+        self.statment = self.df.statment
+        self.contracts_sheets = self.df.contracts_sheets
+        self.contract_activity = self.df.contracts_activity
+        self.offers_dict = offers_dict
+
         self.prices = self.invoicesMetrics()[0]
         self.Index_contract_date_range_dict = self.invoicesMetrics()[1]
+
+        
     def oneContractDates(self,invoice, contract):
         first_date = contract.loc[0,"first date"]
         last_date = contract.loc[len(contract)-1,"second date"]
@@ -90,7 +96,7 @@ class Invoice:
                 self.statment.loc[index,"error_type"]
                 while((invoice["Departure"]-invoice["Arrival"]).days != 0):
                     
-                    for contract_name, contract_object in reversed(self.contracts.items()):
+                    for contract_name, contract_object in reversed(self.offers_dict.items()):
                         if (invoice["Departure"]-invoice["Arrival"]).days == 0:
                             break
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:

@@ -7,10 +7,11 @@ class ToggleMenu(tk.Frame):
         super().__init__(parent)
         
         self.configure(highlightbackground="blue", highlightthickness=2)
+
         self.parent = parent
         self.current_page_name = None  # Store the name of the current page
         self.pages = {}  # Store created pages to avoid recreation
-
+        
         # Create menu buttons with clear labels and functionality
         self.browse_button = ttk.Button(self, text="Browse", command=self.show_browse)
         self.setup_contract_button = ttk.Button(self, text="Setup Contract", command=self.show_setup_contract)
@@ -25,24 +26,30 @@ class ToggleMenu(tk.Frame):
         # Initially display the browse page and show the menu at the top
         self.pack(fill=tk.X, expand=False)  # Pack the menu at the top without expansion
         self.show_browse()
-
+        
     def show_page(self, page_name):
         if self.current_page_name:
             self.pages[self.current_page_name].pack_forget()  # Hide current page
+
+
         self.current_page_name = page_name
     
         if page_name not in self.pages:
+            self.pages[page_name] = globals()[page_name](self.parent)  # Create page if not yet created
+            
+        if page_name == "SetupContract":
+            self.pages[page_name].destroy()
+            self.pages[page_name].__init__(self.parent)
+            
 
-                self.pages[page_name] = globals()[page_name](self.parent)  # Create page if not yet created
-                
         self.pages[page_name].pack(fill=tk.BOTH, expand=True)  # Show the desired page
 
     def show_browse(self):
         self.show_page("MainFrame")
 
     def show_setup_contract(self):
+        
         self.show_page("SetupContract")  # Use a descriptive name for the page
-
 
 class App(tk.Tk):
     def __init__(self):
