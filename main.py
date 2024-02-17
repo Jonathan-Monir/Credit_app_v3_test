@@ -32,4 +32,4 @@ statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(
 
 
 
-# statment.to_excel("output.xlsx", index=False)
+statment.to_excel("output.xlsx", index=False)

@@ -1,6 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
-from browse_frame import MainFrame, SetupContract
+from browse_frame import MainFrame, SetupContract, Apply
+import warnings
+import pandas as pd
+
+# Suppress SettingWithCopyWarning
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action='ignore', category=pd.errors.SettingWithCopyWarning)
+
+# Suppress UserWarnings related to openpyxl
+warnings.filterwarnings("ignore", message="Data Validation extension is not supported and will be removed", category=UserWarning)
 
 class ToggleMenu(tk.Frame):
     def __init__(self, parent):
@@ -15,10 +24,12 @@ class ToggleMenu(tk.Frame):
         # Create menu buttons with clear labels and functionality
         self.browse_button = ttk.Button(self, text="Browse", command=self.show_browse)
         self.setup_contract_button = ttk.Button(self, text="Setup Contract", command=self.show_setup_contract)
+        self.apply_page_button = ttk.Button(self, text="Setup Contract", command=self.show_apply_page)
         
         # Arrange buttons horizontally with padding
         self.browse_button.pack(side=tk.LEFT, padx=5, pady=5)
         self.setup_contract_button.pack(side=tk.LEFT, padx=5, pady=5)
+        self.apply_page_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Style the menu frame
         self.configure(bg="#D1FFE8", pady=10)  # Set blue background and padding
@@ -40,7 +51,10 @@ class ToggleMenu(tk.Frame):
         if page_name == "SetupContract":
             self.pages[page_name].destroy()
             self.pages[page_name].__init__(self.parent)
-            
+
+        if page_name == "Apply":
+            self.pages[page_name].destroy()
+            self.pages[page_name].__init__(self.parent)  
 
         self.pages[page_name].pack(fill=tk.BOTH, expand=True)  # Show the desired page
 
@@ -50,6 +64,10 @@ class ToggleMenu(tk.Frame):
     def show_setup_contract(self):
         
         self.show_page("SetupContract")  # Use a descriptive name for the page
+
+    def show_apply_page(self):
+        
+        self.show_page("Apply")  # Use a descriptive name for the page
 
 class App(tk.Tk):
     def __init__(self):

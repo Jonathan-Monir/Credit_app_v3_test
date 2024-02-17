@@ -37,10 +37,10 @@ class FileUploader:
         return df
 
     def fix_date(self, df_date_fix, column):
-        
+        date_format = '%d/%m/%Y'
         # classify error in date to nulls
-        df_date_fix["date_check"] = pd.to_datetime(df_date_fix[column], errors="coerce")
-        df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce")
+        df_date_fix["date_check"] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
+        df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
         df_date_fix.loc[df_date_fix['date_check'].dt.year < 2012, 'date_check'] = np.nan
 
         # Identify rows with date errors and set "activity" to 0
@@ -86,6 +86,9 @@ class FileUploader:
             
             if sheet_name != "statment":
                 for row_index in range(len(sheet_data['second date'])-1):
+                    
+                    if pd.isna(sheet_data['second date'].iloc[row_index] - sheet_data['first date'][row_index+1]):
+                        continue
                     if abs(sheet_data['second date'].iloc[row_index] - sheet_data['first date'][row_index+1]).days > 1:
                         overlap = True
                         df[sheet_name + " part: "+ str(part)] = sheet_data.iloc[last_fixed_index:row_index+1,:]
@@ -112,7 +115,7 @@ class FileUploader:
         
         statment = self.fix_empty(statment, "Rate code")
 
-        columns_dates_to_fix = ["Res_date","Arrival","Departure"]
+        columns_dates_to_fix = ["Arrival","Departure"]
         for column in columns_dates_to_fix:
             statment = self.fix_date(statment, column)
 
