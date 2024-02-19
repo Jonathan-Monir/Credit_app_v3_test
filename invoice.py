@@ -8,7 +8,6 @@ class Invoice:
         self.contracts_sheets = self.df.contracts_sheets
         self.contract_activity = self.df.contracts_activity
         self.offers_dict = offers_dict
-
         self.prices = self.invoicesMetrics()[0]
         self.Index_contract_date_range_dict = self.invoicesMetrics()[1]
 
@@ -80,8 +79,10 @@ class Invoice:
             invoice["longTerm"] = ((invoice["Arrival"] - invoice["Departure"]).days >= contract_object.LongTerm["days"]) * (contract_object.LongTerm["percentage"]/100)
         date_range["longTerm"] = -(invoice["longTerm"] * date_range["price"])
 
+        date_range["price with offers"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
         date_range["total price"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
-
+        date_range["total price"] = sum(date_range["total price"])
+        date_range["contract name"] = contract_name
         return date_range
 
     def invoicesMetrics(self):
@@ -108,7 +109,7 @@ class Invoice:
                                 
                                 if (self.statment.loc[index,"error_type"]):
                                     self.statment.loc[index,"error_type"] += ", "
-                                self.statment.loc[index,"error_type"] += "error in it's contract"
+                                self.statment.loc[index,"error_type"] += f"error in it's contract ({contract_name})"
                                 
                                 break
                             
@@ -144,9 +145,8 @@ class Invoice:
                                 
                                 Index_contract_date_range_dict[index] = contract_date_range_dict
                                 
-                                index_price_dict[index] = sum(date_range["total price"])
-                                if index == 0:
-                                    print(contract_date_range_dict)
+                                index_price_dict[index] = date_range["total price"][0]
+                                
                                 continue
                     
                     if not(index in index_price_dict) and self.statment.loc[index,"activity"] == 1:

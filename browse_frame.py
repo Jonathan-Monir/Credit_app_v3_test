@@ -213,8 +213,8 @@ class ContractFrame(tk.Frame):
             panel1 = Label(self, image=Delete)
             panel1.image = Delete #keep a reference
 
-            rank = 1
             max_iter = len(current_file.contracts_sheets)
+            rank = 1 
 
             statment_columns = current_file.statment.columns
             self.entries_dict = {}
@@ -494,8 +494,15 @@ class create_widgets(tk.Frame):
             if "enable" in label.lower():
                 self.entries[label] = tk.BooleanVar()
                 
+            elif "From date" in label:
+                self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
+                self.entries[label].set_date(contract_sheet.loc[0,"first date"])
+            elif "To date" in label:
+                self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
+                self.entries[label].set_date(contract_sheet.loc[len(contract_sheet)-1,"second date"])
             elif "date" in label.lower():
                 self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
+                self.entries[label].set_date(contract_sheet.loc[0,"first date"])
 
             elif "percentage" in label.lower() or "amount" in label.lower() or "days" in label.lower():
                 self.entries[label] = tk.Entry(self)
@@ -716,17 +723,22 @@ class ApplySetup(ttk.Frame):
 
     def submit(self):
         for file, setup in self.setup_box.items():
-            self.values = self.get_offer_contract_data(setup.get())
 
             offers_dict = {}
 
             statment = file.statment
             contracts_sheets = file.contracts_sheets
 
-
-            for contract_name, contract_data in file.contracts_sheets.items():
-                offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name],self.values[contract_name]["senior"],self.values[contract_name]["earlyBooking1"],self.values[contract_name]["earlyBooking2"],self.values[contract_name]["longTerm"],self.values[contract_name]["reduction1"],self.values[contract_name]["reduction2"],self.values[contract_name]["combinations"])
-            
+            if len(setup.get()) == 0:
+                
+                for contract_name, contract_data in file.contracts_sheets.items():
+                    offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name])
+                    
+            else:
+                self.values = self.get_offer_contract_data(setup.get())
+                
+                for contract_name, contract_data in file.contracts_sheets.items():
+                    offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name],self.values[contract_name]["senior"],self.values[contract_name]["earlyBooking1"],self.values[contract_name]["earlyBooking2"],self.values[contract_name]["longTerm"],self.values[contract_name]["reduction1"],self.values[contract_name]["reduction2"],self.values[contract_name]["combinations"],self.values[contract_name]["start_date"],self.values[contract_name]["end_date"])
 
             invoice = Invoice(file,offers_dict)
             prices = Invoice(file,offers_dict).prices
@@ -743,6 +755,7 @@ class ApplySetup(ttk.Frame):
 
             statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
             statment.loc[list(date_prices.keys()), "calculations"] = [[str(price) for price in prices_dict.values()] for prices_dict in date_prices.values()]
+
 
             if "Amount-hotel" in statment.columns:
                 statment["Difference"] = statment["Total price"] - statment["Amount-hotel"]

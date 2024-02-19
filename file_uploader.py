@@ -162,8 +162,11 @@ class FileUploader:
 
                 active = ~(contract["activity"] == 0).any()
                 contracts[sheet_name], contracts_activity[sheet_name] = contract, active
-
+        
         contracts = self.fix_overlap(contracts)
+        
+        # fixed_contracts = {k: contracts[k] for k in contracts if k != "contract"}
+        # fixed_contracts["contract"] = contracts["contract"]
         return contracts, contracts_activity
     
     def initialize_offers(self,statment):

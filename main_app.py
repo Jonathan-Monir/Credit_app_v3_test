@@ -7,6 +7,7 @@ import pandas as pd
 # Suppress SettingWithCopyWarning
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.simplefilter(action='ignore', category=pd.errors.SettingWithCopyWarning)
+warnings.filterwarnings("ignore", message="Setting an item of incompatible dtype")
 
 # Suppress UserWarnings related to openpyxl
 warnings.filterwarnings("ignore", message="Data Validation extension is not supported and will be removed", category=UserWarning)
@@ -66,7 +67,6 @@ class ToggleMenu(tk.Frame):
         self.show_page("SetupContract")  # Use a descriptive name for the page
 
     def show_apply_page(self):
-        
         self.show_page("Apply")  # Use a descriptive name for the page
 
 class App(tk.Tk):

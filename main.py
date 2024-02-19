@@ -28,6 +28,7 @@ prices = Invoice(df,offers_dict).prices
 date_prices = Invoice(df,offers_dict).Index_contract_date_range_dict
 
 statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
+
 if "Amount-hotel" in statment.columns:
     statment["Total Difference"] = statment["Total price"] - statment["Amount-hotel"]
 
