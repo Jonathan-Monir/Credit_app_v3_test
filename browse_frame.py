@@ -11,6 +11,8 @@ from PIL import Image, ImageTk
 from contract import Contract
 import sqlite3
 from datetime import datetime
+from invoice import Invoice
+import os
 
 
 global_setup_name = "" 
@@ -221,12 +223,60 @@ class ContractFrame(tk.Frame):
                 self.entries_dict[contract_name].grid(pady=20)
                 rank+=1
             
+            # self.reductions = {}
+            # for prop in ["enable","amount","column"]:
+            #     if prop == "enable":
+            #         self.reductions["rwa " + prop] = tk.BooleanVar()
+            #         self.reductions["rwp " + prop] = tk.BooleanVar()
+            #         self.reductions["ewa " + prop] = tk.BooleanVar()
+            #     if prop == "amount":
+            #         self.reductions["rwa " + prop] = tk.Entry()
+            #         self.reductions["rwp " + prop] = tk.Entry()
+            #         self.reductions["ewa " + prop] = tk.Entry()
+
+            # # reduction amount
+            # tk.Label(self, text="Reduction with amount", font=("Helvetica", 10, "underline")).grid(row=100, column=0, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="Enable").grid(row=101, column=0, sticky="w", padx=5, pady=5)
+            # tk.Checkbutton(self, variable=self.reductions["rwa enable"]).grid(row=101, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="amount").grid(row=102, column=0, sticky="w", padx=5, pady=5)
+            # self.reductions["rwa amount"].grid(row=102, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="column").grid(row=102, column=2, sticky="w", padx=5, pady=5)
+            # self.reductions["rwa column"] = ttk.Combobox(self, values=list(statment_columns))
+            # self.reductions["rwa column"].grid(row=102, column=3)
+            
+            # # reduction percentage
+            # tk.Label(self, text="Reduction with percentage", font=("Helvetica", 10, "underline")).grid(row=103, column=0, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="Enable").grid(row=104, column=0, sticky="w", padx=5, pady=5)
+            # tk.Checkbutton(self, variable=self.reductions["rwp Enable"]).grid(row=104, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="percentage").grid(row=105, column=0, sticky="w", padx=5, pady=5)
+            # self.reductions["rwp amount"].grid(row=105, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="column").grid(row=106, column=2, sticky="w", padx=5, pady=5)
+            # self.reductions["rwp Column"] = ttk.Combobox(self, values=list(statment_columns))
+            # self.reductions["rwp Column"].grid(row=106, column=3)
+            
+            # extra amount
+            # tk.Label(self, text="Reduction 1", font=("Helvetica", 10, "underline")).grid(row=107, column=0, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="Enable").grid(row=108, column=0, sticky="w", padx=5, pady=5)
+            # tk.Checkbutton(self, variable=self.entries["Reduc1 Enable"]).grid(row=108, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="Reduction 1 percentage").grid(row=109, column=0, sticky="w", padx=5, pady=5)
+            # self.entries["Reduc1 Percentage"].grid(row=109, column=1, sticky="w", padx=5, pady=5)
+
+            # tk.Label(self, text="Reduction 1 column").grid(row=109, column=2, sticky="w", padx=5, pady=5)
+            # self.entries["Reduc1 Column"] = ttk.Combobox(self, values=list(statment_columns))
+            # self.entries["Reduc1 Column"].grid(row=109, column=3)
 
             # Button
             self.submit_button = tk.Button(self, text="Submit", command=self.submit)
             self.submit_button.grid(columnspan=2, pady=10)
             
-
 
     def save_to_database(self, all_offer_contract_dict):
         # Connect to the SQLite database
@@ -241,20 +291,64 @@ class ContractFrame(tk.Frame):
                 (contract_name TEXT PRIMARY KEY,
                 offer_name TEXT,
                 offer_data TEXT,
-                Early_Booking1 TEXT,
-                Early_Booking2 TEXT,
-                Reduction1 TEXT,
-                Reduction2 TEXT,
-                Long_term TEXT,
-                Senior TEXT,
-                Combinations TEXT,
-                Start_date Date,
-                End_date Date,
+                eb1_enable BOOLEAN,
+                eb1_percentage REAL,
+                eb1_date DATE,
+                eb2_enable BOOLEAN,
+                eb2_percentage REAL,
+                eb2_date DATE,
+                reduc1_enable BOOLEAN,
+                reduc1_percentage REAL,
+                reduc1_column TEXT,
+                reduc2_enable BOOLEAN,
+                reduc2_percentage REAL,
+                reduc2_column TEXT,
+                lt_enable BOOLEAN,
+                lt_percentage REAL,
+                lt_days INTEGER,
+                senior_enable BOOLEAN,
+                senior_percentage REAL,
+                senior_column TEXT,
+                combinations_eb_lt TEXT,
+                combinations_eb_reduc TEXT,
+                combinations_eb_senior TEXT,
+                start_date DATE,
+                end_date DATE,
                 active INTEGER)''')
             for contract_name, contract_data in offer_data.items():
+                eb1_enable = contract_data["eb1"]["enable"]
+                eb1_percentage = contract_data["eb1"]["percentage"]
+                eb1_date = contract_data["eb1"]["date"]
                 
-                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, Early_Booking1, Early_Booking2, Reduction1, Reduction2, Long_term, Senior, Combinations, Start_date, End_date, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        (offer_name, contract_name, str(contract_data), str(contract_data["eb1"]), str(contract_data["eb2"]), str(contract_data["reduc1"]), str(contract_data["reduc2"]), str(contract_data["lt"]), str(contract_data["senior"]), str(contract_data["combinations"]), datetime.strptime(contract_data["start_date"], '%d/%m/%Y').strftime('%Y-%m-%d'), datetime.strptime(contract_data["end_date"], '%d/%m/%Y').strftime('%Y-%m-%d'), 1))
+                eb2_enable = contract_data["eb2"]["enable"]
+                eb2_percentage = contract_data["eb2"]["percentage"]
+                eb2_date = contract_data["eb2"]["date"]
+                
+                reduc1_enable = contract_data["reduc1"]["enable"]
+                reduc1_percentage = contract_data["reduc1"]["percentage"]
+                reduc1_column = contract_data["reduc1"]["column"]
+                
+                reduc2_enable = contract_data["reduc2"]["enable"]
+                reduc2_percentage = contract_data["reduc2"]["percentage"]
+                reduc2_column = contract_data["reduc2"]["column"]
+                
+                lt_enable = contract_data["lt"]["enable"]
+                lt_percentage = contract_data["lt"]["percentage"]
+                lt_days = contract_data["lt"]["days"]
+                
+                senior_enable = contract_data["senior"]["enable"]
+                senior_percentage = contract_data["senior"]["percentage"]
+                senior_column = contract_data["senior"]["column"]
+                
+                start_date = contract_data["start_date"]
+                end_date = contract_data["end_date"]
+
+                combinations_eb_lt = contract_data["combinations"]["eb_lt"]
+                combinations_eb_recuc = contract_data["combinations"]["eb_reduc"]
+                combinations_eb_senior = contract_data["combinations"]["eb_senior"]
+                
+                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, reduc1_column, reduc2_enable, reduc2_percentage, reduc2_column, lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, senior_column, combinations_eb_lt, combinations_eb_reduc, combinations_eb_senior, start_date, end_date, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (offer_name, contract_name, str(contract_data), eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, str(reduc1_column), reduc2_enable, reduc2_percentage, str(reduc2_column), lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, str(senior_column), combinations_eb_lt, combinations_eb_recuc, combinations_eb_senior, start_date, end_date, 1))
 
         # Commit changes and close the connection
         conn.commit()
@@ -348,6 +442,15 @@ class ContractFrame(tk.Frame):
 
                 if name == "Reduc2 Percentage":
                     reduc2["percentage"] = entry
+                
+                if name == "Combinations EB_LT":
+                    combinations["eb_lt"] = entry
+                
+                if name == "Combinations EB_Reduc":
+                    combinations["eb_reduc"] = entry
+
+                if name == "Combinations EB_Senior":
+                    combinations["eb_senior"] = entry
 
                 if name == "From date":
                     start_date = entry
@@ -370,8 +473,6 @@ class ContractFrame(tk.Frame):
         all_offer_contract_dict[self.setup_name.get("1.0", "end-1c")] = offers_per_contract
         
 
-        # print(Contract(contract_name,contract_sheet,self.contract_activities[contract_name],senior,eb1,eb2,lt,reduc1,reduc2,combinations,))
-        
         self.save_to_database(all_offer_contract_dict)
         
 class create_widgets(tk.Frame):
@@ -384,7 +485,7 @@ class create_widgets(tk.Frame):
                     "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
                     "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
                     "Senior Enable", "Senior Column", "Senior Percentage",
-                    "Combinations EB_LT", "Combinations EB_Reduc", "From date", "To date"]
+                    "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior", "From date", "To date"]
         
         self.entries = {}
         self.configure(highlightbackground="black", highlightthickness=2)
@@ -476,30 +577,46 @@ class create_widgets(tk.Frame):
         self.entries["Reduc2 Column"] = ttk.Combobox(self, values=list(statment_columns))
         self.entries["Reduc2 Column"].grid(row=17, column=3)
 
-
-        tk.Label(self, text="Senior", font=("Helvetica", 10, "underline")).grid(row=18, column=0, sticky="w", padx=5, pady=5)
-
+        #lt
+        tk.Label(self, text="Long term", font=("Helvetica", 10, "underline")).grid(row=18, column=0, sticky="w", padx=5, pady=5)
+        
         tk.Label(self, text="Enable").grid(row=19, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Senior Enable"]).grid(row=19, column=1, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["LT Enable"]).grid(row=19, column=1, sticky="w", padx=5, pady=5)
 
-        tk.Label(self, text="Senior percentage").grid(row=20, column=0, sticky="w", padx=5, pady=5)
-        self.entries["Senior Percentage"].grid(row=20, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Long term percentage").grid(row=20, column=0, sticky="w", padx=5, pady=5)
+        self.entries["LT Percentage"].grid(row=20, column=1, sticky="w", padx=5, pady=5)
+        
+        tk.Label(self, text="Long term days").grid(row=20, column=2, sticky="w", padx=5, pady=5)
+        self.entries["LT Days"].grid(row=20, column=3, sticky="w", padx=5, pady=5)
+        
+        #senior
+        tk.Label(self, text="Senior", font=("Helvetica", 10, "underline")).grid(row=21, column=0, sticky="w", padx=5, pady=5)
 
-        tk.Label(self, text="Senior column").grid(row=20, column=2, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=22, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Senior Enable"]).grid(row=22, column=1, sticky="w", padx=5, pady=5)
+
+        tk.Label(self, text="Senior percentage").grid(row=23, column=0, sticky="w", padx=5, pady=5)
+        self.entries["Senior Percentage"].grid(row=23, column=1, sticky="w", padx=5, pady=5)
+
+        tk.Label(self, text="Senior column").grid(row=23, column=2, sticky="w", padx=5, pady=5)
         self.entries["Senior Column"] = ttk.Combobox(self, values=list(statment_columns))
-        self.entries["Senior Column"].grid(row=20, column=3)
+        self.entries["Senior Column"].grid(row=23, column=3)
 
         # combinations
 
-        tk.Label(self, text="Combinations", font=("Helvetica", 10, "underline")).grid(row=21, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Combinations", font=("Helvetica", 10, "underline")).grid(row=24, column=0, sticky="w", padx=5, pady=5)
         
         self.entries["Combinations EB_LT"] = tk.BooleanVar()
-        tk.Label(self, text="Early booking with long term").grid(row=22, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Combinations EB_LT"]).grid(row=22, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking with long term").grid(row=25, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_LT"]).grid(row=25, column=1, sticky="w", padx=5, pady=5)
         
         self.entries["Combinations EB_Reduc"] = tk.BooleanVar()
-        tk.Label(self, text="Early booking with reduction").grid(row=23, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Combinations EB_Reduc"]).grid(row=20, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking with reduction").grid(row=26, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_Reduc"]).grid(row=26, column=1, sticky="w", padx=5, pady=5)
+        
+        self.entries["Combinations EB_Senior"] = tk.BooleanVar()
+        tk.Label(self, text="Early booking with senior").grid(row=27, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_Senior"]).grid(row=27, column=1, sticky="w", padx=5, pady=5)
 
     def get_entries(self):
         updated_entries = {}
@@ -582,7 +699,7 @@ class ApplySetup(ttk.Frame):
             tk.Label(self, text="Please choose a file to make the setup", font=("Helvetica", 24)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
 
         else:
-            self.tables = self.get_tables_and_values()
+            self.tables = self.get_tables()
             tk.Label(self, text="File name", font=("Helvetica", 14,)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
             
             self.file_setup_dict = {}
@@ -597,7 +714,41 @@ class ApplySetup(ttk.Frame):
             self.submit_button = tk.Button(self, text="Submit", command=self.submit)
             self.submit_button.grid(columnspan=2, pady=10)
 
-    def get_tables_and_values(self):
+    def submit(self):
+        for file, setup in self.setup_box.items():
+            self.values = self.get_offer_contract_data(setup.get())
+
+            offers_dict = {}
+
+            statment = file.statment
+            contracts_sheets = file.contracts_sheets
+
+
+            for contract_name, contract_data in file.contracts_sheets.items():
+                offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name],self.values[contract_name]["senior"],self.values[contract_name]["earlyBooking1"],self.values[contract_name]["earlyBooking2"],self.values[contract_name]["longTerm"],self.values[contract_name]["reduction1"],self.values[contract_name]["reduction2"],self.values[contract_name]["combinations"])
+            
+
+            invoice = Invoice(file,offers_dict)
+            prices = Invoice(file,offers_dict).prices
+            date_prices = Invoice(file,offers_dict).Index_contract_date_range_dict
+
+            output_folder = "output"
+            # Create the output folder if it doesn't exist
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            # Path to the output file
+            output_file_path = os.path.join(output_folder, f"{file.filename}_output.xlsx")
+
+
+            statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
+            statment.loc[list(date_prices.keys()), "calculations"] = [[str(price) for price in prices_dict.values()] for prices_dict in date_prices.values()]
+
+            if "Amount-hotel" in statment.columns:
+                statment["Difference"] = statment["Total price"] - statment["Amount-hotel"]
+            statment.to_excel(output_file_path, index=False)
+
+    def get_tables(self):
         db_file = 'setups.db'
         try:
             # Connect to the SQLite database
@@ -629,7 +780,44 @@ class ApplySetup(ttk.Frame):
             print("SQLite error:", e)
             return None
 
-    def submit(self):
-        for file, setup in self.setup_box.items():
-            print(file.filename,setup.get())
-        # Contract(contract_name,contract_sheet,self.contract_activities[contract_name],senior,eb1,eb2,lt,reduc1,reduc2,combinations)
+
+
+    def get_offer_contract_data(self, offer_name):
+        conn = sqlite3.connect('setups.db')  # Update 'your_database.db' with your actual database name
+        c = conn.cursor()
+        
+        c.execute(f"SELECT * FROM {offer_name}")
+        rows = c.fetchall()
+        offer_contract_data = {}
+        for row in rows:
+            contract_data = {}
+            contract_data["contract_name"] = row[0]
+            contract_data["offer_name"] = row[1]
+            contract_data["offer_data"] = row[2]
+            
+            eb1 = {"enable": row[3], "percentage": row[4], "date": pd.to_datetime(row[5], format='%d/%m/%Y') if row[5] else None}
+            eb2 = {"enable": row[6], "percentage": row[7], "date": pd.to_datetime(row[8], format='%d/%m/%Y') if row[8] else None}
+            reduc1 = {"enable": row[9], "percentage": row[10], "column": row[11]}
+            reduc2 = {"enable": row[12], "percentage": row[13], "column": row[14]}
+            lt = {"enable": row[15], "percentage": row[16], "days": row[17]}
+            senior = {"enable": row[18], "percentage": row[19], "column": row[20]}
+            combinations = {"eb_lt": row[21], "eb_reduc": row[22], "eb_senior": row[23]}
+            start_date = pd.to_datetime(row[24], format='%d/%m/%Y') if row[24] else None
+            end_date = pd.to_datetime(row[25], format='%d/%m/%Y') if row[25] else None
+            active = row[26]
+            
+            contract_data["earlyBooking1"] = eb1
+            contract_data["earlyBooking2"] = eb2
+            contract_data["reduction1"] = reduc1
+            contract_data["reduction2"] = reduc2
+            contract_data["longTerm"] = lt
+            contract_data["senior"] = senior
+            contract_data["combinations"] = combinations
+            contract_data["start_date"] = start_date
+            contract_data["end_date"] = end_date
+            contract_data["active"] = active
+
+            offer_contract_data[contract_data['contract_name']] = contract_data
+
+        conn.close()
+        return offer_contract_data
