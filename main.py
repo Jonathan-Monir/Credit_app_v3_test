@@ -14,7 +14,7 @@ def make_contracts_dict(contracts_sheets,contract_activity):
             offers_dict[contract_name] = Contract(contract_name, contract_data, contract_activity[contract_name])
         return offers_dict
 
-df = FileUploader(r"test files\test2.xlsx")
+df = FileUploader(r"test files\Cairo express travel 23-24- Siva.xlsx")
 statment = df.statment
 
 
@@ -28,6 +28,7 @@ prices = Invoice(df,offers_dict).prices
 date_prices = Invoice(df,offers_dict).Index_contract_date_range_dict
 
 statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
+if "Amount-hotel" in statment.columns:
+    statment["Total Difference"] = statment["Total price"] - statment["Amount-hotel"]
 
-
-# statment.to_excel("output.xlsx", index=False)
+statment.to_excel("output.xlsx", index=False)

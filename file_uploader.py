@@ -45,12 +45,12 @@ class FileUploader:
         for date_format in try_formats:
             try:
                 df_date_fix.loc[df_date_fix['date_check'].isna(), 'date_check'] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
-
+                
 
                 
             except ValueError:
                 pass
-
+        df_date_fix["date_check"] = pd.to_datetime(df_date_fix["date_check"])
         # Extract components and format desired output
         df_date_fix["day"] = df_date_fix["date_check"].dt.strftime('%d')
         df_date_fix["month"] = df_date_fix["date_check"].dt.strftime('%m')  # Numeric month format

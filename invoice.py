@@ -55,7 +55,7 @@ class Invoice:
             contract_dict[contract_name] = Contract(contract_name, contract_data, contract_activity[contract_name])
         return contract_dict
 
-    def optimize_invoice_offers(self, invoice, contract_name, contract_object, date_range, last_day_removal=True):
+    def optimize_invoice_offers(self, index, invoice, contract_name, contract_object, date_range, last_day_removal=True):
         if last_day_removal:
             date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] - pd.to_timedelta(1, unit='d')
 
@@ -124,19 +124,20 @@ class Invoice:
                                 break
                             
                             new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet)
-                            
+                                
                             date_range = pd.merge(date_range,new_date_range, how='outer')
 
-                            new_date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, new_date_range, False)
+                            new_date_range = self.optimize_invoice_offers(index, invoice, contract_name, contract_object, new_date_range, False)
                             
                             contract_date_range_dict[contract_name] = new_date_range
+                            
                     
                             
-
+                            
                             if ((invoice["Departure"]-invoice["Arrival"]).days == 0):
-                                date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, date_range, False)
+                                date_range = self.optimize_invoice_offers(index, invoice, contract_name, contract_object, date_range, True)
 
-                                new_date_range = self.optimize_invoice_offers(invoice, contract_name, contract_object, new_date_range)
+                                new_date_range = self.optimize_invoice_offers(index, invoice, contract_name, contract_object, new_date_range)
 
                                 contract_date_range_dict[contract_name] = new_date_range
                                 
@@ -144,6 +145,8 @@ class Invoice:
                                 Index_contract_date_range_dict[index] = contract_date_range_dict
                                 
                                 index_price_dict[index] = sum(date_range["total price"])
+                                if index == 0:
+                                    print(contract_date_range_dict)
                                 continue
                     
                     if not(index in index_price_dict) and self.statment.loc[index,"activity"] == 1:
