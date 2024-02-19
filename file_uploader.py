@@ -39,24 +39,43 @@ class FileUploader:
         return df
 
     def fix_date(self, df_date_fix, column):
-        date_format = '%d/%m/%Y'
-        # classify error in date to nulls
-        df_date_fix["date_check"] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
-        df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
-        df_date_fix.loc[df_date_fix['date_check'].dt.year < 2012, 'date_check'] = np.nan
+        # Detect and parse date format dynamically
+        try_formats = ['%Y-%m-%d %H:%M:%S', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d', '%m-%d-%Y', '%Y-%d-%m', '%d-%m-%Y']
+        df_date_fix["date_check"] = pd.NA
+        for date_format in try_formats:
+            try:
+                df_date_fix.loc[df_date_fix['date_check'].isna(), 'date_check'] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
 
-        # Identify rows with date errors and set "activity" to 0
+
+                
+            except ValueError:
+                pass
+
+        # Extract components and format desired output
+        df_date_fix["day"] = df_date_fix["date_check"].dt.strftime('%d')
+        df_date_fix["month"] = df_date_fix["date_check"].dt.strftime('%m')  # Numeric month format
+        df_date_fix["year"] = df_date_fix["date_check"].dt.year
+    
+        # Combine and format as "MM/DD/YYYY"
+        df_date_fix[column] = df_date_fix[["month", "day", "year"]].apply(
+            lambda row: f"{row['month']}/{row['day']}/{row['year']}", axis=1
+        )
+        # Set "activity" to 0 for rows with date errors
         error_rows = df_date_fix["date_check"].isna()
         df_date_fix.loc[error_rows, "activity"] = 0
 
+        # Update error_type if applicable
         if "error_type" in df_date_fix.columns:
             if not df_date_fix.loc[error_rows, "error_type"].empty:
                 df_date_fix.loc[error_rows, "error_type"] += f", Date error in {column}"
             else:
                 df_date_fix.loc[error_rows, "error_type"] = f"Date error in {column}"
 
-        df_date_fix.drop("date_check", axis = 1, inplace = True)
+        df_date_fix.drop("day", axis=1, inplace=True)
+        df_date_fix.drop("month", axis=1, inplace=True)
+        df_date_fix.drop("year", axis=1, inplace=True)
         
+        df_date_fix[column] = pd.to_datetime(df_date_fix[column])
         return df_date_fix
 
     def fix_numbers(self, statment_fix, columns_to_fix):
@@ -118,13 +137,17 @@ class FileUploader:
         statment = self.fix_empty(statment, "Rate code")
 
         columns_dates_to_fix = ["Arrival","Departure"]
+
+        if "Res_date" in statment:
+            columns_dates_to_fix.append("Res_date")
+
         for column in columns_dates_to_fix:
             statment = self.fix_date(statment, column)
 
         # columns_numeric_to_fix = ["Amount-hotel","Currency rate","Departure"]
         # statment = self.fix_numbers(statment, columns_numeric_to_fix)
         
-        return statment
+        return self.initialize_offers(statment)
 
     def check_contract(self, sheets):
         contracts = {}
@@ -146,9 +169,12 @@ class FileUploader:
     def initialize_offers(self,statment):
         statment["earlyBooking1"] = 0
         statment["earlyBooking2"] = 0
+        statment["senior"] = 0
         statment["longTerm"] = 0
         statment["reduction1"] = 0
         statment["reduction2"] = 0
+
+        return statment
 
         
     def fix_file(self):
