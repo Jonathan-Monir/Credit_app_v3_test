@@ -11,8 +11,6 @@ from PIL import Image, ImageTk
 from contract import Contract
 import sqlite3
 from datetime import datetime
-from invoice import Invoice
-
 
 
 global_setup_name = "" 
