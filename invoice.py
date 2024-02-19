@@ -100,6 +100,9 @@ class Invoice:
                         if (invoice["Departure"]-invoice["Arrival"]).days == 0:
                             break
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:
+                            
+                            # contract not active
+                            
                             if not(contract_object.activity):
                                 self.statment.loc[index,"activity"] = 0
                                 
@@ -109,6 +112,7 @@ class Invoice:
                                 
                                 break
                             
+                            # rate code not in contract
                             if not(invoice["Rate code"] in contract_object.contract_sheet.columns):
                                 
                                 self.statment.loc[index,"activity"] = 0
@@ -153,3 +157,5 @@ class Invoice:
 
         return index_price_dict, Index_contract_date_range_dict
                                 
+                                
+
