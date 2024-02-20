@@ -20,16 +20,39 @@ global_setup_name = ""
 class MainFrame(ttk.Frame):
     def __init__(self,parent):
         super().__init__(parent)
-        self.pack(expand=True, fill="both")
+        # Load the image
+        image = Image.open(r"images\bg.png")
+        
+        desired_width = 600
+        desired_height = 600
+        image.thumbnail((desired_width, desired_height))
+
+        
+        photo = ImageTk.PhotoImage(image)
+
+        # Create a label to display the image
+        self.image_label = tk.Label(self, image=photo)
+        self.image_label.image = photo  # Keep a reference to prevent garbage collection
+        self.image_label.pack()
+
+        # style = ttk.Style()
+        # style.configure("Gray.TFrame", background="#f0f0f0")
+        
+        # # Create a frame with the custom style
+        # self.frame = ttk.Frame(self, style="Gray.TFrame", width=200, height=200)
+        # # self.pack(expand=True, fill="both")
         
         global container
         container = []
-        self.canvas = tk.Canvas(self, background="#F68497", scrollregion=(0,0,self.winfo_width(),800))
+        self.canvas = tk.Canvas(self, background="#f0f0f0", scrollregion=(0,0,self.winfo_width(),800))
         self.canvas.pack(expand=True, fill='both')
 
         self.welcome = Welcome(self)
         ttk.Label(self.welcome).pack()
         self.canvas.create_window((-1,0), window = self.welcome, anchor='nw', width=self.winfo_width(), height=270)
+        
+        
+        
         
         # events
         self.canvas.bind_all('<MouseWheel>', lambda event: self.canvas.yview_scroll(-int(event.delta / 60),'units'))
@@ -166,20 +189,35 @@ class ContractSetting(ttk.Frame):
         self.setup_file.bind('<Double-1>', self.refresh_page)   # Bind to selection event
         self.setup_file.grid(row=1, column=0, sticky="w", padx=5, pady=10,rowspan=8)  # Corrected this line
         
+        tk.Label(self, text="change setup", font=("Helvetica", 10, "underline")).grid(column=0, sticky="w", padx=0, pady=0)
+        table_names = list(ApplySetup.get_tables(self).keys())
+        
+        table_names.insert(0, 'None')
+        self.initialized_setup = ttk.Combobox(self, values=table_names)
+        self.initialized_setup.grid(column=0, sticky="w", padx=5, pady=10)
+        self.initialized_setup.bind("<<ComboboxSelected>>", self.refresh_page)
+        
         self.contract_frame = ContractFrame(self)
         self.contract_frame.grid(column = 0, columnspan=2)
 
     def refresh_page(self, event):
+        
+        
         self.contract_frame.destroy()
-        self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
-        self.contract_frame = ContractFrame(self, self.current_file)
+        
+        if len(self.setup_file.curselection()) == 0:
+            self.current_file = 0
+        else:
+            self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
+        
+        self.contract_frame = ContractFrame(self, self.current_file, self.initialized_setup.get())
         self.contract_frame.grid(column = 0, columnspan=2)
 
 # import tkinter as tk
 from tkinter import messagebox
 
 class ContractFrame(tk.Frame):
-    def __init__(self, master=None, current_file=None, **kwargs):
+    def __init__(self, master=None, current_file=None, initialized_setup=None, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
 
@@ -188,25 +226,27 @@ class ContractFrame(tk.Frame):
             tk.Label(self, text="Please choose a file to make the setup", font=("Helvetica", 24)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
 
         else:
-
+            
+            self.initialized_setup = initialized_setup
+            self.current_file = current_file
+            
             tk.Label(self, text="Setup name", font=("Helvetica", 10, "underline")).grid(row=1, column=0, sticky="w", padx=0, pady=0)
             self.setup_name = tk.Text(self, height = 1, width = 15)
             self.setup_name.grid(row=2, column=0, sticky="w", padx=5, pady=10)
-
-
-            self.current_file = current_file
+            
+            
             #down
             pathtophoto = Image.open(r"images\RD.png").resize((25,25))
             Down = ImageTk.PhotoImage(pathtophoto)
             panel1 = Label(self, image=Down)
             panel1.image = Down #keep a reference
-
+            
             #up
             pathtophoto = Image.open(r"images\RU.png").resize((25,25))
             Up = ImageTk.PhotoImage(pathtophoto)
             panel1 = Label(self, image=Up)
             panel1.image = Up #keep a reference
-
+            
             #up
             pathtophoto = Image.open(r"images\Delete.png").resize((25,25))
             Delete = ImageTk.PhotoImage(pathtophoto)
@@ -221,10 +261,7 @@ class ContractFrame(tk.Frame):
             
             
             
-            # self.combobox.bind("<<ComboboxSelected>>", self.on_combobox_select)
-            tk.Label(self, text="change setup", font=("Helvetica", 10, "underline")).grid(column=0, sticky="w", padx=0, pady=0)
-            self.initialize_with_setup = ttk.Combobox(self, values=list(ApplySetup.get_tables(self).keys()))
-            self.initialize_with_setup.grid(column=0, sticky="w", padx=5, pady=10)
+            
             
             for contract_name, contract_sheet in current_file.contracts_sheets.items():
                 self.entries_dict[contract_name] = create_widgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns)
@@ -285,7 +322,9 @@ class ContractFrame(tk.Frame):
             self.submit_button = tk.Button(self, text="Submit", command=self.submit)
             self.submit_button.grid(columnspan=2, pady=10)
             
-
+    def on_combobox_select(self, event):
+        self.destroy()
+        self.__init__(self.parent)
     def save_to_database(self, all_offer_contract_dict):
         # Connect to the SQLite database
         conn = sqlite3.connect('setups.db')
@@ -361,7 +400,7 @@ class ContractFrame(tk.Frame):
         # Commit changes and close the connection
         conn.commit()
         conn.close()
-      
+    
     def submit(self):
         contract_params = {}
         global global_setup_name
@@ -496,6 +535,7 @@ class create_widgets(tk.Frame):
                     "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior", "From date", "To date"]
         
         self.entries = {}
+        
         self.configure(highlightbackground="black", highlightthickness=2)
         for i, label in enumerate(labels):
             
@@ -715,7 +755,10 @@ class ApplySetup(ttk.Frame):
             tk.Label(self, text="Please choose a file to make the setup", font=("Helvetica", 24)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
 
         else:
+            
             self.tables = self.get_tables()
+            self.tables.insert(0, 'None')
+            
             tk.Label(self, text="File name", font=("Helvetica", 14,)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
             
             self.file_setup_dict = {}

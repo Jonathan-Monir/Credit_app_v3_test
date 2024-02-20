@@ -16,7 +16,7 @@ class ToggleMenu(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
-        self.configure(highlightbackground="blue", highlightthickness=2)
+        self.configure(highlightbackground="black", highlightthickness=2)
 
         self.parent = parent
         self.current_page_name = None  # Store the name of the current page
@@ -33,7 +33,7 @@ class ToggleMenu(tk.Frame):
         self.apply_page_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Style the menu frame
-        self.configure(bg="#D1FFE8", pady=10)  # Set blue background and padding
+        self.configure(bg="#f6f2e9", pady=10)  # Set blue background and padding
 
         # Initially display the browse page and show the menu at the top
         self.pack(fill=tk.X, expand=False)  # Pack the menu at the top without expansion
@@ -76,7 +76,7 @@ class App(tk.Tk):
         self.geometry("600x600")
         self.minsize(600, 600)
         # self.attributes('-fullscreen', True)
-        
+        self.iconbitmap(r"images\logo.ico")
         self.toggle_menu = ToggleMenu(self)  # Create the toggle menu
 
         # Create quit button
