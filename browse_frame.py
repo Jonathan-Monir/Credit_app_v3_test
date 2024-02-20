@@ -218,6 +218,14 @@ class ContractFrame(tk.Frame):
 
             statment_columns = current_file.statment.columns
             self.entries_dict = {}
+            
+            
+            
+            # self.combobox.bind("<<ComboboxSelected>>", self.on_combobox_select)
+            tk.Label(self, text="change setup", font=("Helvetica", 10, "underline")).grid(column=0, sticky="w", padx=0, pady=0)
+            self.initialize_with_setup = ttk.Combobox(self, values=list(ApplySetup.get_tables(self).keys()))
+            self.initialize_with_setup.grid(column=0, sticky="w", padx=5, pady=10)
+            
             for contract_name, contract_sheet in current_file.contracts_sheets.items():
                 self.entries_dict[contract_name] = create_widgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns)
                 self.entries_dict[contract_name].grid(pady=20)
@@ -523,10 +531,11 @@ class create_widgets(tk.Frame):
         tk.Label(self, text=str(rank) + "-" + contract_name, font=("Helvetica", 12)).grid(row=0, column=0, sticky="w", padx=10, pady=10)
         tk.Label(self, text="").grid(row=1, column=0, sticky="w", padx=5, pady=5)
         
-        tk.Label(self, text="From", font=("Helvetica", 10, "underline")).grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        self.entries["From date"].grid(row=2, column=1, sticky="w", padx=5, pady=5)
-        tk.Label(self, text="To", font=("Helvetica", 10, "underline")).grid(row=2, column=2, sticky="w", padx=5, pady=5)
-        self.entries["To date"].grid(row=2, column=3, sticky="w", padx=5, pady=5)
+        if contract_name != "contract":
+            tk.Label(self, text="From", font=("Helvetica", 10, "underline")).grid(row=2, column=0, sticky="w", padx=5, pady=5)
+            self.entries["From date"].grid(row=2, column=1, sticky="w", padx=5, pady=5)
+            tk.Label(self, text="To", font=("Helvetica", 10, "underline")).grid(row=2, column=2, sticky="w", padx=5, pady=5)
+            self.entries["To date"].grid(row=2, column=3, sticky="w", padx=5, pady=5)
         
         tk.Label(self, text="").grid(row=3, column=0, sticky="w", padx=5, pady=5)
         
