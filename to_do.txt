@@ -1,3 +1,7 @@
+Res_date
+date_error
+delete columns of all zeroes
+redding differences
 resize page
 complete an old setup
 contracts navigation and deletation

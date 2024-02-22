@@ -23,9 +23,9 @@ class ToggleMenu(tk.Frame):
         self.pages = {}  # Store created pages to avoid recreation
         
         # Create menu buttons with clear labels and functionality
-        self.browse_button = ttk.Button(self, text="Browse", command=self.show_browse)
+        self.browse_button = ttk.Button(self, text="Browse Data", command=self.show_browse)
         self.setup_contract_button = ttk.Button(self, text="Setup Contract", command=self.show_setup_contract)
-        self.apply_page_button = ttk.Button(self, text="Setup Contract", command=self.show_apply_page)
+        self.apply_page_button = ttk.Button(self, text="Export Data", command=self.show_apply_page)
         
         # Arrange buttons horizontally with padding
         self.browse_button.pack(side=tk.LEFT, padx=5, pady=5)

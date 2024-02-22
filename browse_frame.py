@@ -13,7 +13,17 @@ import sqlite3
 from datetime import datetime
 from invoice import Invoice
 import os
+import sys
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS2
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 global_setup_name = "" 
 
@@ -21,7 +31,7 @@ class MainFrame(ttk.Frame):
     def __init__(self,parent):
         super().__init__(parent)
         # Load the image
-        image = Image.open(r"images\bg.png")
+        image = Image.open(resource_path(resource_path(r"images\bg.png")))
         
         desired_width = 600
         desired_height = 600
@@ -71,9 +81,6 @@ class ExcelFileBrowserApp:
         self.list_frame = tk.Frame(root)
         self.list_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.label = tk.Label(self.list_frame, text="Selected Files:")
-        self.label.pack()
-
         self.scrollbar = Scrollbar(self.list_frame, orient=tk.VERTICAL)
         self.listbox = tk.Listbox(self.list_frame, selectmode=tk.MULTIPLE, yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.listbox.yview)
@@ -84,7 +91,7 @@ class ExcelFileBrowserApp:
         self.buttons_frame = tk.Frame(root)
         self.buttons_frame.pack(side=tk.TOP, fill=tk.X)
 
-        self.browse_button = tk.Button(self.buttons_frame, text="Browse", command=self.browse_files)
+        self.browse_button = tk.Button(self.buttons_frame, text="Select files", command=self.browse_files)
         self.browse_button.pack(side=tk.LEFT)
         
 
@@ -236,19 +243,19 @@ class ContractFrame(tk.Frame):
             
             
             #down
-            pathtophoto = Image.open(r"images\RD.png").resize((25,25))
+            pathtophoto = Image.open(resource_path(r"images\RD.png")).resize((25,25))
             Down = ImageTk.PhotoImage(pathtophoto)
             panel1 = Label(self, image=Down)
             panel1.image = Down #keep a reference
             
             #up
-            pathtophoto = Image.open(r"images\RU.png").resize((25,25))
+            pathtophoto = Image.open(resource_path(r"images\RU.png")).resize((25,25))
             Up = ImageTk.PhotoImage(pathtophoto)
             panel1 = Label(self, image=Up)
             panel1.image = Up #keep a reference
             
             #up
-            pathtophoto = Image.open(r"images\Delete.png").resize((25,25))
+            pathtophoto = Image.open(resource_path(r"images\Delete.png")).resize((25,25))
             Delete = ImageTk.PhotoImage(pathtophoto)
             panel1 = Label(self, image=Delete)
             panel1.image = Delete #keep a reference
@@ -327,7 +334,7 @@ class ContractFrame(tk.Frame):
         self.__init__(self.parent)
     def save_to_database(self, all_offer_contract_dict):
         # Connect to the SQLite database
-        conn = sqlite3.connect('setups.db')
+        conn = sqlite3.connect(resource_path('setups.db'))
         c = conn.cursor()
         
         # Create a table to store the data
@@ -757,7 +764,6 @@ class ApplySetup(ttk.Frame):
         else:
             
             self.tables = self.get_tables()
-            self.tables.insert(0, 'None')
             
             tk.Label(self, text="File name", font=("Helvetica", 14,)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
             
