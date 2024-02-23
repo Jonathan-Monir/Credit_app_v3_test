@@ -14,6 +14,8 @@ from datetime import datetime
 from invoice import Invoice
 import os
 import sys
+from pandastable import Table
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -368,7 +370,8 @@ class ContractFrame(tk.Frame):
                 combinations_eb_senior TEXT,
                 start_date DATE,
                 end_date DATE,
-                active INTEGER)''')
+                active INTEGER,
+                sbi BOOLEAN)''')
             for contract_name, contract_data in offer_data.items():
                 eb1_enable = contract_data["eb1"]["enable"]
                 eb1_percentage = contract_data["eb1"]["percentage"]
@@ -401,8 +404,9 @@ class ContractFrame(tk.Frame):
                 combinations_eb_recuc = contract_data["combinations"]["eb_reduc"]
                 combinations_eb_senior = contract_data["combinations"]["eb_senior"]
                 
-                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, reduc1_column, reduc2_enable, reduc2_percentage, reduc2_column, lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, senior_column, combinations_eb_lt, combinations_eb_reduc, combinations_eb_senior, start_date, end_date, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (offer_name, contract_name, str(contract_data), eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, str(reduc1_column), reduc2_enable, reduc2_percentage, str(reduc2_column), lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, str(senior_column), combinations_eb_lt, combinations_eb_recuc, combinations_eb_senior, start_date, end_date, 1))
+                sbi = contract_data["sbi"]
+                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, reduc1_column, reduc2_enable, reduc2_percentage, reduc2_column, lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, senior_column, combinations_eb_lt, combinations_eb_reduc, combinations_eb_senior, start_date, end_date, active, sbi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (offer_name, contract_name, str(contract_data), eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, str(reduc1_column), reduc2_enable, reduc2_percentage, str(reduc2_column), lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, str(senior_column), combinations_eb_lt, combinations_eb_recuc, combinations_eb_senior, start_date, end_date, 1, sbi))
 
         # Commit changes and close the connection
         conn.commit()
@@ -512,6 +516,9 @@ class ContractFrame(tk.Frame):
                 if name == "To date":
                     end_date = entry
 
+                if name == "sbi":
+                    sbi = entry
+
             offers["eb1"]=eb1
             offers["eb2"]=eb2
             offers["lt"]=lt
@@ -521,6 +528,7 @@ class ContractFrame(tk.Frame):
             offers["combinations"]=combinations
             offers["start_date"]=start_date
             offers["end_date"]=end_date
+            offers["sbi"]=sbi
             
             offers_per_contract[contract_name] = offers
             
@@ -539,7 +547,7 @@ class create_widgets(tk.Frame):
                     "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
                     "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
                     "Senior Enable", "Senior Column", "Senior Percentage",
-                    "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior", "From date", "To date"]
+                    "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior", "From date", "To date","sbi"]
         
         self.entries = {}
         
@@ -681,6 +689,10 @@ class create_widgets(tk.Frame):
         tk.Label(self, text="Early booking with senior").grid(row=27, column=0, sticky="w", padx=5, pady=5)
         tk.Checkbutton(self, variable=self.entries["Combinations EB_Senior"]).grid(row=27, column=1, sticky="w", padx=5, pady=5)
 
+        self.entries["sbi"] = tk.BooleanVar()
+        tk.Label(self, text="Spo by arrival").grid(row=28, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["sbo"]).grid(row=28, column=1, sticky="w", padx=5, pady=5)
+
     def get_entries(self):
         updated_entries = {}
         for key, entry in self.entries.items():
@@ -813,10 +825,17 @@ class ApplySetup(ttk.Frame):
 
             statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
             statment.loc[list(date_prices.keys()), "calculations"] = [[str(price) for price in prices_dict.values()] for prices_dict in date_prices.values()]
-
-
+            
             if "Amount-hotel" in statment.columns:
                 statment["Difference"] = statment["Total price"] - statment["Amount-hotel"]
+                
+                DifferenceTable(self, statment, file.filename).grid()
+            
+            cols_to_drop = statment.columns[~(statment != 0).any()]
+            columns_to_keep = ['Difference']
+            # Drop the selected columns, creating a new DataFrame
+            statment_filtered = statment.drop(columns_to_drop=list(set(statment.columns) - set(columns_to_keep)), inplace=True)
+
             statment.to_excel(output_file_path, index=False)
 
     def get_tables(self):
@@ -876,6 +895,7 @@ class ApplySetup(ttk.Frame):
             start_date = pd.to_datetime(row[24], format='%d/%m/%Y') if row[24] else None
             end_date = pd.to_datetime(row[25], format='%d/%m/%Y') if row[25] else None
             active = row[26]
+            sbi = row[27]
             
             contract_data["earlyBooking1"] = eb1
             contract_data["earlyBooking2"] = eb2
@@ -887,8 +907,36 @@ class ApplySetup(ttk.Frame):
             contract_data["start_date"] = start_date
             contract_data["end_date"] = end_date
             contract_data["active"] = active
+            contract_data["sbi"] = sbi
 
             offer_contract_data[contract_data['contract_name']] = contract_data
 
         conn.close()
         return offer_contract_data
+
+
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+
+class DifferenceTable(ttk.Frame):
+    def __init__(self,parent, statment, filename):
+        super().__init__(parent)
+
+        columns_to_review = ["Amount-hotel","Total price","Difference"]
+        if "Invoice No." in statment:
+            columns_to_review.append("Invoice No.")
+
+        elif "Folio" in statment:
+            columns_to_review.append("Folio")
+
+        difference_table = statment[statment['Difference'] != 0][columns_to_review]
+        
+        tk.Label(self, text=filename, font=("Helvetica", 10, "underline"))
+        
+        # Create a Table object
+        table = Table(self, dataframe=difference_table)
+
+        # Optionally, customize table appearance (e.g., column widths, font)
+        table.show()

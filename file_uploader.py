@@ -42,6 +42,13 @@ class FileUploader:
         # Detect and parse date format dynamically
         try_formats = ['%Y-%m-%d %H:%M:%S', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d', '%m-%d-%Y', '%Y-%d-%m', '%d-%m-%Y']
         df_date_fix["date_check"] = pd.NA
+
+        def remove_dot(value):
+            if '.' in value:
+                return value.split('.')[0]
+            else:
+                return value
+                
         for date_format in try_formats:
             try:
                 df_date_fix.loc[df_date_fix['date_check'].isna(), 'date_check'] = pd.to_datetime(df_date_fix[column], errors="coerce", format=date_format)
@@ -54,12 +61,14 @@ class FileUploader:
         # Extract components and format desired output
         df_date_fix["day"] = df_date_fix["date_check"].dt.strftime('%d')
         df_date_fix["month"] = df_date_fix["date_check"].dt.strftime('%m')  # Numeric month format
-        df_date_fix["year"] = df_date_fix["date_check"].dt.year
+        df_date_fix["year"] = df_date_fix["date_check"].dt.strftime('%Y') 
     
+   
         # Combine and format as "MM/DD/YYYY"
         df_date_fix[column] = df_date_fix[["month", "day", "year"]].apply(
             lambda row: f"{row['month']}/{row['day']}/{row['year']}", axis=1
         )
+
         # Set "activity" to 0 for rows with date errors
         error_rows = df_date_fix["date_check"].isna()
         df_date_fix.loc[error_rows, "activity"] = 0
@@ -75,7 +84,7 @@ class FileUploader:
         df_date_fix.drop("month", axis=1, inplace=True)
         df_date_fix.drop("year", axis=1, inplace=True)
         
-        df_date_fix[column] = pd.to_datetime(df_date_fix[column])
+        df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce")
         return df_date_fix
 
     def fix_numbers(self, statment_fix, columns_to_fix):
@@ -176,7 +185,9 @@ class FileUploader:
         statment["longTerm"] = 0
         statment["reduction1"] = 0
         statment["reduction2"] = 0
-
+        
+        if "Res_date" not in statment.columns:
+            statment["Res_date"] = statment["Arrival"]
         return statment
 
         

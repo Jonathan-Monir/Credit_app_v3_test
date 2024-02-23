@@ -1,13 +1,16 @@
-Res_date
+by arrival
+christmas
 date_error
 delete columns of all zeroes
-redding differences
+Res_date
 resize page
 complete an old setup
 contracts navigation and deletation
 add senior, reduction, extra offers
 fix stop when statment doesn't have reservation date 
-#add price ranges#
 authentication page
 please insert a name text in setup file
 name reapeted text in setup file
+
+#add price ranges#
+#reading differences#
