@@ -831,10 +831,10 @@ class ApplySetup(ttk.Frame):
                 
                 DifferenceTable(self, statment, file.filename).grid()
             
-            cols_to_drop = statment.columns[~(statment != 0).any()]
-            columns_to_keep = ['Difference']
-            # Drop the selected columns, creating a new DataFrame
-            statment_filtered = statment.drop(columns_to_drop=list(set(statment.columns) - set(columns_to_keep)), inplace=True)
+            # cols_to_drop = statment.columns[~(statment != 0).any()]
+            # columns_to_keep = ['Difference']
+            # # Drop the selected columns, creating a new DataFrame
+            # statment_filtered = statment.drop(columns=list(set(cols_to_drop) - set(columns_to_keep)), inplace=True)
 
             statment.to_excel(output_file_path, index=False)
 

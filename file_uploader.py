@@ -183,8 +183,8 @@ class FileUploader:
         statment["earlyBooking2"] = 0
         statment["senior"] = 0
         statment["longTerm"] = 0
-        statment["reduction1"] = 0
-        statment["reduction2"] = 0
+        statment["Reduction1"] = 0
+        statment["Reduction2"] = 0
         
         if "Res_date" not in statment.columns:
             statment["Res_date"] = statment["Arrival"]

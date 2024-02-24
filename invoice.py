@@ -65,7 +65,14 @@ class Invoice:
         date_range["reduction2"] = 0
         date_range["Nights"] = (date_range["second date"] - date_range["first date"]) + pd.to_timedelta(1, unit='d')
         date_range["price"] = (date_range["Nights"].dt.days * date_range[invoice["Rate code"]]).astype(float)
-                                
+
+        
+        invoice["earlyBooking1"] = 0
+        invoice["earlyBooking2"] = 0
+        invoice["longTerm"] = 0
+        invoice["reduction1"] = 0
+        invoice["reduction2"] = 0
+
         # Offers
         if contract_object.EarlyBooking1["enable"]:
             invoice["earlyBooking1"] = (invoice["Res_date"] <= contract_object.EarlyBooking1["date"]) * (contract_object.EarlyBooking1["percentage"]/100)
@@ -78,6 +85,19 @@ class Invoice:
         if contract_object.LongTerm["enable"]:
             invoice["longTerm"] = ((invoice["Arrival"] - invoice["Departure"]).days >= contract_object.LongTerm["days"]) * (contract_object.LongTerm["percentage"]/100)
         date_range["longTerm"] = -(invoice["longTerm"] * date_range["price"])
+
+        if contract_object.Reduction1["enable"]:
+            invoice[contract_object.Reduction1["column"]] = invoice[contract_object.Reduction1["column"]].lower().map({'yes': 1, 'no': 0})
+
+            invoice["Reduction1"] = (invoice[contract_object.Reduction1["column"]] * (contract_object.Reduction1["percentage"]/100))
+        date_range["Reduction1"] = -(invoice["Reduction1"] * date_range["price"])
+
+
+        if contract_object.Reduction2["enable"]:
+            invoice[contract_object.Reduction2["column"]] = invoice[contract_object.Reduction2["column"]].lower().map({'yes': 1, 'no': 0})
+            
+            invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
+        date_range["Reduction2"] = -(invoice["Reduction2"] * date_range["price"])
 
         date_range["price with offers"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
         date_range["total price"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
@@ -153,6 +173,15 @@ class Invoice:
                         self.statment.loc[index,"error_type"] += "reservation date not valid"
                         self.statment.loc[index,"activity"] = 0
                     break
+                
+
+                # by arrival
+                if (contract_object.sbi["enable"]) and (invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date) and (invoice["Departure"] >= contract_object.contract_sheet["first date"][0] and invoice["Arrival"] <= contract_object.contract_sheet["second date"][-1]):
+                    
+                    date_range = contract_object.contract_sheet[(invoice["Arrival"] <= contract_object.contract_sheet["second date"]) & (invoice["Departure"] >= contract_object.contract_sheet["first date"])].reset_index(drop = True)
+
+                    index_price_dict[index] = (invoice["Departure"] - invoice["Arrival"]) - pd.Timedelta(days=1)
+
 
                 if self.statment.loc[index,"activity"] == 0:
                     
