@@ -99,6 +99,13 @@ class Invoice:
             invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
         date_range["Reduction2"] = -(invoice["Reduction2"] * date_range["price"])
 
+        
+        if contract_object.Reduction2["enable"]:
+            invoice[contract_object.Reduction2["column"]] = invoice[contract_object.Reduction2["column"]].lower().map({'yes': 1, 'no': 0})
+            
+            invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
+        date_range["Reduction2"] = -(invoice["Reduction2"] * date_range["price"])
+
         date_range["price with offers"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
         date_range["total price"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
         date_range["total price"] = sum(date_range["total price"])

@@ -334,6 +334,7 @@ class ContractFrame(tk.Frame):
     def on_combobox_select(self, event):
         self.destroy()
         self.__init__(self.parent)
+        
     def save_to_database(self, all_offer_contract_dict):
         # Connect to the SQLite database
         conn = sqlite3.connect(resource_path('setups.db'))
@@ -413,130 +414,159 @@ class ContractFrame(tk.Frame):
         conn.close()
     
     def submit(self):
-        contract_params = {}
-        global global_setup_name
-
-        eb1 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
-        eb2 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
-        lt = {"enable":False,"percentage":0,"days":0}
-        senior = {"enable":False,"column":"","percentage":0}
-        reduc1 = {"enable":False,"column":"","percentage":0}
-        reduc2 = {"enable":False,"column":"","percentage":0}
-        extra = {"enable":False,"amount":0}
-        combinations = {"eb_lt":False,"eb_reduc":False}
-
-        start_date = {"date":pd.to_datetime("01/11/2026")}
-        end_date = {"date":pd.to_datetime("01/11/2026")}
         
-        self.contract_activities = self.current_file.contracts_activity
         
-        all_offer_contract_dict = {}
+        # make a code that will get the name of the tables from setups.db
+        import sqlite3
         
-        offers_per_contract = {}
-        for contract_name, contract_sheet in self.current_file.contracts_sheets.items():
-            offers = {}
-            eb1 = {}
-            eb2 = {}
-            lt = {}
-            senior = {}
-            reduc1 = {}
-            reduc2 = {}
-            combinations = {}  # Assuming this is defined elsewhere in your code
-            start_date = None  # Initialize to None
-            end_date = None    # Initialize to None
-
-            for name, entry in self.entries_dict[contract_name].get_entries().items():
+        # Connect to the database
+        conn = sqlite3.connect('setups.db')
+        
+        # Create a cursor object
+        cursor = conn.cursor()
+        
+        # Get the table names
+        table_names = cursor.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
+        
+        # Close the connection
+        conn.close()
+        
+        # Convert the table names to a list
+        table_list = [name[0] for name in table_names]
+        
+        
+        if len(self.setup_name.get("1.0", "end-1c")) !=0 and self.setup_name.get("1.0", "end-1c") not in table_list:
                 
-                if name == "EB1 Enable":
-                    eb1["enable"] = entry
+            contract_params = {}
+            global global_setup_name
+
+            eb1 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
+            eb2 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
+            lt = {"enable":False,"percentage":0,"days":0}
+            senior = {"enable":False,"column":"","percentage":0}
+            reduc1 = {"enable":False,"column":"","percentage":0}
+            reduc2 = {"enable":False,"column":"","percentage":0}
+            extra = {"enable":False,"amount":0}
+            combinations = {"eb_lt":False,"eb_reduc":False}
+
+            start_date = {"date":pd.to_datetime("01/11/2026")}
+            end_date = {"date":pd.to_datetime("01/11/2026")}
+            
+            self.contract_activities = self.current_file.contracts_activity
+            
+            all_offer_contract_dict = {}
+            
+            offers_per_contract = {}
+            for contract_name, contract_sheet in self.current_file.contracts_sheets.items():
+                offers = {}
+                eb1 = {}
+                eb2 = {}
+                lt = {}
+                senior = {}
+                reduc1 = {}
+                reduc2 = {}
+                combinations = {}  # Assuming this is defined elsewhere in your code
+                start_date = None  # Initialize to None
+                end_date = None    # Initialize to None
+
+                for name, entry in self.entries_dict[contract_name].get_entries().items():
                     
-                if name == "EB1 Percentage":
-                    eb1["percentage"] = entry
+                    if name == "EB1 Enable":
+                        eb1["enable"] = entry
+                        
+                    if name == "EB1 Percentage":
+                        eb1["percentage"] = entry
 
-                if name == "EB1 Date":
-                    eb1["date"] = entry
+                    if name == "EB1 Date":
+                        eb1["date"] = entry
 
-                if name == "EB2 Enable":
-                    eb2["enable"] = entry
+                    if name == "EB2 Enable":
+                        eb2["enable"] = entry
 
-                if name == "EB2 Percentage":
-                    eb2["percentage"] = entry
+                    if name == "EB2 Percentage":
+                        eb2["percentage"] = entry
 
-                if name == "EB2 Date":
-                    eb2["date"] = entry
+                    if name == "EB2 Date":
+                        eb2["date"] = entry
 
-                if name == "LT Enable":
-                    lt["enable"] = entry
+                    if name == "LT Enable":
+                        lt["enable"] = entry
 
-                if name == "LT Percentage":
-                    lt["percentage"] = entry
+                    if name == "LT Percentage":
+                        lt["percentage"] = entry
 
-                if name == "LT Days":
-                    lt["days"] = entry
+                    if name == "LT Days":
+                        lt["days"] = entry
 
-                if name == "Senior Enable":
-                    senior["enable"] = entry
+                    if name == "Senior Enable":
+                        senior["enable"] = entry
 
-                if name == "Senior Percentage":
-                    senior["percentage"] = entry
+                    if name == "Senior Percentage":
+                        senior["percentage"] = entry
 
-                if name == "Senior Column":
-                    senior["column"] = entry
+                    if name == "Senior Column":
+                        senior["column"] = entry
 
-                if name == "Reduc1 Enable":
-                    reduc1["enable"] = entry
+                    if name == "Reduc1 Enable":
+                        reduc1["enable"] = entry
 
-                if name == "Reduc1 Column":
-                    reduc1["column"] = entry
+                    if name == "Reduc1 Column":
+                        reduc1["column"] = entry
 
-                if name == "Reduc1 Percentage":
-                    reduc1["percentage"] = entry
+                    if name == "Reduc1 Percentage":
+                        reduc1["percentage"] = entry
 
-                if name == "Reduc2 Enable":
-                    reduc2["enable"] = entry
+                    if name == "Reduc2 Enable":
+                        reduc2["enable"] = entry
 
-                if name == "Reduc2 Column":
-                    reduc2["column"] = entry
+                    if name == "Reduc2 Column":
+                        reduc2["column"] = entry
 
-                if name == "Reduc2 Percentage":
-                    reduc2["percentage"] = entry
+                    if name == "Reduc2 Percentage":
+                        reduc2["percentage"] = entry
+                    
+                    if name == "Combinations EB_LT":
+                        combinations["eb_lt"] = entry
+                    
+                    if name == "Combinations EB_Reduc":
+                        combinations["eb_reduc"] = entry
+
+                    if name == "Combinations EB_Senior":
+                        combinations["eb_senior"] = entry
+
+                    if name == "From date":
+                        start_date = entry
+
+                    if name == "To date":
+                        end_date = entry
+
+                    if name == "sbi":
+                        sbi = entry
+
+                offers["eb1"]=eb1
+                offers["eb2"]=eb2
+                offers["lt"]=lt
+                offers["senior"]=senior
+                offers["reduc1"]=reduc1
+                offers["reduc2"]=reduc2
+                offers["combinations"]=combinations
+                offers["start_date"]=start_date
+                offers["end_date"]=end_date
+                offers["sbi"]=sbi
                 
-                if name == "Combinations EB_LT":
-                    combinations["eb_lt"] = entry
+                offers_per_contract[contract_name] = offers
                 
-                if name == "Combinations EB_Reduc":
-                    combinations["eb_reduc"] = entry
-
-                if name == "Combinations EB_Senior":
-                    combinations["eb_senior"] = entry
-
-                if name == "From date":
-                    start_date = entry
-
-                if name == "To date":
-                    end_date = entry
-
-                if name == "sbi":
-                    sbi = entry
-
-            offers["eb1"]=eb1
-            offers["eb2"]=eb2
-            offers["lt"]=lt
-            offers["senior"]=senior
-            offers["reduc1"]=reduc1
-            offers["reduc2"]=reduc2
-            offers["combinations"]=combinations
-            offers["start_date"]=start_date
-            offers["end_date"]=end_date
-            offers["sbi"]=sbi
+            all_offer_contract_dict[self.setup_name.get("1.0", "end-1c")] = offers_per_contract
             
-            offers_per_contract[contract_name] = offers
-            
-        all_offer_contract_dict[self.setup_name.get("1.0", "end-1c")] = offers_per_contract
-        
 
-        self.save_to_database(all_offer_contract_dict)
+            self.save_to_database(all_offer_contract_dict)
         
+        elif len(self.setup_name.get("1.0", "end-1c")) ==0:
+            tk.Label(self, text="please insert a name text in setup file").grid()
+            
+        elif len(self.setup_name.get("1.0", "end-1c")) not in table_list:
+            tk.Label(self, text="name reapeted text in setup file").grid()
+            
 class create_widgets(tk.Frame):
     def __init__(self, master, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
         super().__init__(master)
@@ -691,7 +721,7 @@ class create_widgets(tk.Frame):
 
         self.entries["sbi"] = tk.BooleanVar()
         tk.Label(self, text="Spo by arrival").grid(row=28, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["sbo"]).grid(row=28, column=1, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["sbi"]).grid(row=28, column=1, sticky="w", padx=5, pady=5)
 
     def get_entries(self):
         updated_entries = {}

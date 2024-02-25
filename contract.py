@@ -1,4 +1,6 @@
 import pandas as pd
+
+# To Do: 
 class Contract:
     eb1 = {"enable":False,"percentage":10,"date":pd.to_datetime("01/11/2026")}
     eb2 = {"enable":False,"percentage":10,"date":pd.to_datetime("01/11/2026")}
