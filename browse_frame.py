@@ -15,7 +15,10 @@ from invoice import Invoice
 import os
 import sys
 from pandastable import Table
-
+import numpy as np
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.colheader_justify', 'center')
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -841,8 +844,8 @@ class ApplySetup(ttk.Frame):
                     offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name],self.values[contract_name]["senior"],self.values[contract_name]["earlyBooking1"],self.values[contract_name]["earlyBooking2"],self.values[contract_name]["longTerm"],self.values[contract_name]["reduction1"],self.values[contract_name]["reduction2"],self.values[contract_name]["combinations"],self.values[contract_name]["start_date"],self.values[contract_name]["end_date"])
 
             invoice = Invoice(file,offers_dict)
-            prices = Invoice(file,offers_dict).prices
-            date_prices = Invoice(file,offers_dict).Index_contract_date_range_dict
+            prices = invoice.prices
+            date_prices = invoice.Index_contract_date_range_dict
 
             output_folder = "output"
             # Create the output folder if it doesn't exist
@@ -854,8 +857,18 @@ class ApplySetup(ttk.Frame):
 
 
             statment.loc[prices.keys(), "Total price"] = [round(price, 2) for price in list(prices.values())]
-            statment.loc[list(date_prices.keys()), "calculations"] = [[str(price) for price in prices_dict.values()] for prices_dict in date_prices.values()]
             
+            
+            for date in date_prices.keys():
+                
+                prices = date_prices[date]
+                    
+                result = ""
+                for table_name, table_data in prices.items():
+                    result += f"{table_name}:\n{table_data.to_string(index=False)}\n\n"
+                    
+                statment.loc[date, "calculations"] = result
+                
             if "Amount-hotel" in statment.columns:
                 statment["Difference"] = statment["Total price"] - statment["Amount-hotel"]
                 

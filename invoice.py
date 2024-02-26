@@ -8,8 +8,9 @@ class Invoice:
         self.contracts_sheets = self.df.contracts_sheets
         self.contract_activity = self.df.contracts_activity
         self.offers_dict = offers_dict
-        self.prices = self.invoicesMetrics()[0]
-        self.Index_contract_date_range_dict = self.invoicesMetrics()[1]
+        self.metrices = self.invoicesMetrics()
+        self.prices = self.metrices[0]
+        self.Index_contract_date_range_dict = self.metrices[1]
 
         
     def oneContractDates(self,invoice, contract):
@@ -57,7 +58,7 @@ class Invoice:
     def optimize_invoice_offers(self, index, invoice, contract_name, contract_object, date_range, last_day_removal=True):
         if last_day_removal:
             date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] - pd.to_timedelta(1, unit='d')
-
+        
         date_range["earlyBooking1"] = 0
         date_range["earlyBooking2"] = 0
         date_range["longTerm"] = 0
@@ -90,21 +91,21 @@ class Invoice:
             invoice[contract_object.Reduction1["column"]] = invoice[contract_object.Reduction1["column"]].lower().map({'yes': 1, 'no': 0})
 
             invoice["Reduction1"] = (invoice[contract_object.Reduction1["column"]] * (contract_object.Reduction1["percentage"]/100))
-        date_range["Reduction1"] = -(invoice["Reduction1"] * date_range["price"])
+        date_range["reduction1"] = -(invoice["Reduction1"] * date_range["price"])
 
 
         if contract_object.Reduction2["enable"]:
             invoice[contract_object.Reduction2["column"]] = invoice[contract_object.Reduction2["column"]].lower().map({'yes': 1, 'no': 0})
             
             invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
-        date_range["Reduction2"] = -(invoice["Reduction2"] * date_range["price"])
+        date_range["reduction2"] = -(invoice["Reduction2"] * date_range["price"])
 
         
-        if contract_object.Reduction2["enable"]:
-            invoice[contract_object.Reduction2["column"]] = invoice[contract_object.Reduction2["column"]].lower().map({'yes': 1, 'no': 0})
+        if contract_object.senior["enable"]:
+            invoice[contract_object.senior["column"]] = invoice[contract_object.senior["column"]].lower().map({'yes': 1, 'no': 0})
             
-            invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
-        date_range["Reduction2"] = -(invoice["Reduction2"] * date_range["price"])
+            invoice["senior"] = (invoice[contract_object.senior["column"]] * (contract_object.senior["percentage"]/100))
+        date_range["senior"] = -(invoice["senior"] * date_range["price"])
 
         date_range["price with offers"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
         date_range["total price"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
@@ -120,6 +121,8 @@ class Invoice:
             contract_date_range_dict = {}
             rate_code = invoice["Rate code"]
             date_range = pd.DataFrame(columns=["first date","second date",])
+            
+            
             if self.statment.loc[index,"activity"]:
                 self.statment.loc[index,"error_type"]
                 while((invoice["Departure"]-invoice["Arrival"]).days != 0):
@@ -159,7 +162,7 @@ class Invoice:
                             
                             contract_date_range_dict[contract_name] = new_date_range
                             
-                    
+
                             
                             
                             if ((invoice["Departure"]-invoice["Arrival"]).days == 0):
@@ -186,15 +189,15 @@ class Invoice:
                 if (contract_object.sbi["enable"]) and (invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date) and (invoice["Departure"] >= contract_object.contract_sheet["first date"][0] and invoice["Arrival"] <= contract_object.contract_sheet["second date"][-1]):
                     
                     date_range = contract_object.contract_sheet[(invoice["Arrival"] <= contract_object.contract_sheet["second date"]) & (invoice["Departure"] >= contract_object.contract_sheet["first date"])].reset_index(drop = True)
-
+                    
                     index_price_dict[index] = (invoice["Departure"] - invoice["Arrival"]) - pd.Timedelta(days=1)
-
-
+                    
+                    
                 if self.statment.loc[index,"activity"] == 0:
                     
                     continue
-
+                    
         return index_price_dict, Index_contract_date_range_dict
-                                
-                                
+
+
 
