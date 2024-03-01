@@ -10,9 +10,11 @@ class FileUploader:
     def __init__(self, filepath):
         self.filepath = filepath
         self.filename = filepath.split('/')[-1]
-        self.statment = self.fix_file()[0]
-        self.contracts_sheets = self.fix_file()[1]
-        self.contracts_activity = self.fix_file()[2]
+        
+        self.fixed_file = self.fix_file()
+        self.statment = self.fixed_file[0]
+        self.contracts_sheets = self.fixed_file[1]
+        self.contracts_activity = self.fixed_file[2]
         self.num_rows = self.statment.shape[1]
 
     def to_df(self):
@@ -73,6 +75,7 @@ class FileUploader:
         error_rows = df_date_fix["date_check"].isna()
         df_date_fix.loc[error_rows, "activity"] = 0
 
+        
         # Update error_type if applicable
         if "error_type" in df_date_fix.columns:
             if not df_date_fix.loc[error_rows, "error_type"].empty:
@@ -85,6 +88,8 @@ class FileUploader:
         df_date_fix.drop("year", axis=1, inplace=True)
         
         df_date_fix[column] = pd.to_datetime(df_date_fix[column], errors="coerce")
+        
+        
         return df_date_fix
 
     def fix_numbers(self, statment_fix, columns_to_fix):
@@ -168,8 +173,19 @@ class FileUploader:
                 columns_dates_to_fix = ["first date","second date"]
                 for column in columns_dates_to_fix:
                     contract = self.fix_date(sheet_data, column)
-
+                
+                
+                for index, row in contract.iterrows():
+                    if row['first date'] > row['second date']:
+                        contract.at[index, 'error_type'] = f"First date greater than second date"
+                        contract.at[index, 'activity'] = False
+                
+                contract.dropna(subset=['first date', 'second date'], inplace=True)
+                
+                if sheet_name == "contract":
+                    print(contract)
                 active = ~(contract["activity"] == 0).any()
+                
                 contracts[sheet_name], contracts_activity[sheet_name] = contract, active
         
         contracts = self.fix_overlap(contracts)
@@ -214,3 +230,7 @@ class FileUploader:
         return statment, contracts_sheets, contracts_activity
 
     
+if __name__ == "__main__":
+    file = FileUploader("test files\Biblio- Grand 23-24.Invo.xlsx")
+    statment, contracts_sheets, contracts_activity = file.fix_file()
+    print(contracts_activity)

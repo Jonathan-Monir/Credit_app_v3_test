@@ -16,6 +16,10 @@ import os
 import sys
 from pandastable import Table
 import numpy as np
+
+import datetime
+
+
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.colheader_justify', 'center')
@@ -271,14 +275,19 @@ class ContractFrame(tk.Frame):
             statment_columns = current_file.statment.columns
             self.entries_dict = {}
             
-            
-            
-            
+            contracts_activity = current_file.contracts_activity
             
             for contract_name, contract_sheet in current_file.contracts_sheets.items():
-                self.entries_dict[contract_name] = create_widgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns)
-                self.entries_dict[contract_name].grid(pady=20)
-                rank+=1
+                if contracts_activity[contract_name]:
+                    self.entries_dict[contract_name] = CreateWidgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns)
+                    self.entries_dict[contract_name].grid(pady=20)
+                    rank+=1
+                
+                else:
+                    # show contract_name error in tkinter as a label in red
+                    tk.Label(self, text=f"{contract_name} has an error", font=("Helvetica", 10, "underline"), fg="red").grid(column=0, sticky="w", padx=5, pady=5)
+                    
+                
             
             # self.reductions = {}
             # for prop in ["enable","amount","column"]:
@@ -570,46 +579,64 @@ class ContractFrame(tk.Frame):
         elif len(self.setup_name.get("1.0", "end-1c")) not in table_list:
             tk.Label(self, text="name reapeted text in setup file").grid()
             
-class create_widgets(tk.Frame):
+class CreateWidgets(tk.Frame):
     def __init__(self, master, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
         super().__init__(master)
-        
-        labels = ["EB1 Enable", "EB1 Percentage", "EB1 Date",
-                    "EB2 Enable", "EB2 Percentage", "EB2 Date",
-                    "LT Enable", "LT Percentage", "LT Days",
-                    "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
-                    "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
-                    "Senior Enable", "Senior Column", "Senior Percentage",
-                    "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior", "From date", "To date","sbi"]
-        
         self.entries = {}
+        self.labels = ["EB1 Enable", "EB1 Percentage", "EB1 Date",
+                       "EB2 Enable", "EB2 Percentage", "EB2 Date",
+                       "LT Enable", "LT Percentage", "LT Days",
+                       "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
+                       "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
+                       "Senior Enable", "Senior Column", "Senior Percentage",
+                       "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior",
+                       "From date", "To date", "sbi"]
         
+        self.create_widgets(contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns)
         self.configure(highlightbackground="black", highlightthickness=2)
-        for i, label in enumerate(labels):
-            
+
+    def create_widgets(self, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
+        self.create_entries(contract_sheet)
+        self.place_navigation_buttons(rank, max_iter, Down, Up, Delete, contract_name)
+        self.place_labels(contract_name)
+        self.place_additional_widgets(contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns)
+
+    def create_entries(self, contract_sheet):
+        for label in self.labels:
             if "enable" in label.lower():
                 self.entries[label] = tk.BooleanVar()
-                
-            elif "From date" in label:
+            elif "From date" in label or "To date" in label or "date" in label.lower():
                 self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
-                self.entries[label].set_date(contract_sheet.loc[0,"first date"])
-            elif "To date" in label:
-                self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
-                self.entries[label].set_date(contract_sheet.loc[len(contract_sheet)-1,"second date"])
-            elif "date" in label.lower():
-                self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
-                self.entries[label].set_date(contract_sheet.loc[0,"first date"])
-
+                if "From date" in label:
+                    self.entries[label].set_date(contract_sheet.loc[0, "first date"])
+                elif "To date" in label:
+                    self.entries[label].set_date(contract_sheet.loc[len(contract_sheet) - 1, "second date"])
+                else:
+                    self.entries[label].set_date(contract_sheet.loc[0, "first date"])
             elif "percentage" in label.lower() or "amount" in label.lower() or "days" in label.lower():
                 self.entries[label] = tk.Entry(self)
-                
 
-        
-        # widgets placemnet
+    def place_navigation_buttons(self, rank, max_iter, Down, Up, Delete, contract_name):
+        if rank != 1:
+            tk.Button(self, image=Up).grid(row=0, column=3, sticky="w", padx=5, pady=5)
+        if rank != max_iter:
+            tk.Button(self, image=Down).grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        tk.Button(self, image=Delete).grid(row=0, column=4, sticky="w", padx=5, pady=5)
+        tk.Label(self, text=str(rank) + "-" + contract_name, font=("Helvetica", 12)).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+        tk.Label(self, text="").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+
+    def place_labels(self, contract_name):
+        if contract_name != "contract":
+            tk.Label(self, text="From", font=("Helvetica", 10, "underline")).grid(row=2, column=0, sticky="w", padx=5, pady=5)
+            self.entries["From date"].grid(row=2, column=1, sticky="w", padx=5, pady=5)
+            tk.Label(self, text="To", font=("Helvetica", 10, "underline")).grid(row=2, column=2, sticky="w", padx=5, pady=5)
+            self.entries["To date"].grid(row=2, column=3, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early Booking 1", font=("Helvetica", 10, "underline")).grid(row=4, column=0, sticky="w", padx=5, pady=5)
 
         # eb1
 
-        
+    def place_additional_widgets(self,contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
         if rank != 1:
             tk.Button(self, image=Up).grid(row=0, column=3, sticky="w", padx=5, pady=5)
         if rank != max_iter:   
@@ -627,105 +654,90 @@ class create_widgets(tk.Frame):
         
         tk.Label(self, text="").grid(row=3, column=0, sticky="w", padx=5, pady=5)
         
-        tk.Label(self, text="Early Booking 1", font=("Helvetica", 10, "underline")).grid(row=4, column=0, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="Enable").grid(row=5, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["EB1 Enable"]).grid(row=5, column=1, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="Early booking percentage").grid(row=6, column=0, sticky="w", padx=5, pady=5)
-        self.entries["EB1 Percentage"].grid(row=6, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Early booking date").grid(row=6, column=2, sticky="w", padx=5, pady=5)
-        self.entries["EB1 Date"].grid(row=6, column=3, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="").grid(row=7, column=0, sticky="w", padx=5, pady=5)
+        # eb2
+        eb1_start_row = 4
+        tk.Label(self, text="Early Booking 1", font=("Helvetica", 10, "underline")).grid(row=eb1_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=eb1_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["EB1 Enable"]).grid(row=eb1_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking percentage").grid(row=eb1_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["EB1 Percentage"].grid(row=eb1_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking date").grid(row=eb1_start_row + 2, column=2, sticky="w", padx=5, pady=5)
+        self.entries["EB1 Date"].grid(row=eb1_start_row + 2, column=3, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="").grid(row=eb1_start_row + 3, column=0, sticky="w", padx=5, pady=5)
 
         # eb2
-        tk.Label(self, text="Early Booking 2", font=("Helvetica", 10, "underline")).grid(row=8, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(self, text="Enable").grid(row=9, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["EB2 Enable"]).grid(row=9, column=1, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="Early booking percentage").grid(row=10, column=0, sticky="w", padx=5, pady=5)
-        self.entries["EB2 Percentage"].grid(row=10, column=1, sticky="w", padx=5, pady=5)
+        eb2_start_row = 8
+        tk.Label(self, text="Early Booking 2", font=("Helvetica", 10, "underline")).grid(row=eb2_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=eb2_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["EB2 Enable"]).grid(row=eb2_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking percentage").grid(row=eb2_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["EB2 Percentage"].grid(row=eb2_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking date").grid(row=eb2_start_row + 2, column=2, sticky="w", padx=5, pady=5)
+        self.entries["EB2 Date"].grid(row=eb2_start_row + 2, column=3, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="").grid(row=eb2_start_row + 3, column=0, sticky="w", padx=5, pady=5)
 
-        tk.Label(self, text="Early booking date").grid(row=10, column=2, sticky="w", padx=5, pady=5)
-        self.entries["EB2 Date"].grid(row=10, column=3, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="").grid(row=11, column=0, sticky="w", padx=5, pady=5)
-
-        # reduction 1
-        tk.Label(self, text="Reduction 1", font=("Helvetica", 10, "underline")).grid(row=12, column=0, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Enable").grid(row=13, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Reduc1 Enable"]).grid(row=13, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Reduction 1 percentage").grid(row=14, column=0, sticky="w", padx=5, pady=5)
-        self.entries["Reduc1 Percentage"].grid(row=14, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Reduction 1 column").grid(row=14, column=2, sticky="w", padx=5, pady=5)
-        
-        
+        # Reduction 1
+        reduc1_start_row = 12
+        tk.Label(self, text="Reduction 1", font=("Helvetica", 10, "underline")).grid(row=reduc1_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=reduc1_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Reduc1 Enable"]).grid(row=reduc1_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Reduction 1 percentage").grid(row=reduc1_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["Reduc1 Percentage"].grid(row=reduc1_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Reduction 1 column").grid(row=reduc1_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Reduc1 Column"] = ttk.Combobox(self, values=list(statment_columns))
-        self.entries["Reduc1 Column"].grid(row=14, column=3)
+        self.entries["Reduc1 Column"].grid(row=reduc1_start_row + 2, column=3)
 
-        # Redcution 2
-        tk.Label(self, text="Redcution 2", font=("Helvetica", 10, "underline")).grid(row=15, column=0, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Enable").grid(row=16, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Reduc2 Enable"]).grid(row=16, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Redcution 2 percentage").grid(row=17, column=0, sticky="w", padx=5, pady=5)
-        self.entries["Reduc2 Percentage"].grid(row=17, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Redcution 2 column").grid(row=17, column=2, sticky="w", padx=5, pady=5)
+        # Reduction 2
+        reduc2_start_row = 15
+        tk.Label(self, text="Reduction 2", font=("Helvetica", 10, "underline")).grid(row=reduc2_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=reduc2_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Reduc2 Enable"]).grid(row=reduc2_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Reduction 2 percentage").grid(row=reduc2_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["Reduc2 Percentage"].grid(row=reduc2_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Reduction 2 column").grid(row=reduc2_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Reduc2 Column"] = ttk.Combobox(self, values=list(statment_columns))
-        self.entries["Reduc2 Column"].grid(row=17, column=3)
+        self.entries["Reduc2 Column"].grid(row=reduc2_start_row + 2, column=3)
 
-        #lt
-        tk.Label(self, text="Long term", font=("Helvetica", 10, "underline")).grid(row=18, column=0, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="Enable").grid(row=19, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["LT Enable"]).grid(row=19, column=1, sticky="w", padx=5, pady=5)
+        # Long term
+        lt_start_row = 18
+        tk.Label(self, text="Long term", font=("Helvetica", 10, "underline")).grid(row=lt_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=lt_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["LT Enable"]).grid(row=lt_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Long term percentage").grid(row=lt_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["LT Percentage"].grid(row=lt_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Long term days").grid(row=lt_start_row + 2, column=2, sticky="w", padx=5, pady=5)
+        self.entries["LT Days"].grid(row=lt_start_row + 2, column=3, sticky="w", padx=5, pady=5)
 
-        tk.Label(self, text="Long term percentage").grid(row=20, column=0, sticky="w", padx=5, pady=5)
-        self.entries["LT Percentage"].grid(row=20, column=1, sticky="w", padx=5, pady=5)
-        
-        tk.Label(self, text="Long term days").grid(row=20, column=2, sticky="w", padx=5, pady=5)
-        self.entries["LT Days"].grid(row=20, column=3, sticky="w", padx=5, pady=5)
-        
-        #senior
-        tk.Label(self, text="Senior", font=("Helvetica", 10, "underline")).grid(row=21, column=0, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Enable").grid(row=22, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Senior Enable"]).grid(row=22, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Senior percentage").grid(row=23, column=0, sticky="w", padx=5, pady=5)
-        self.entries["Senior Percentage"].grid(row=23, column=1, sticky="w", padx=5, pady=5)
-
-        tk.Label(self, text="Senior column").grid(row=23, column=2, sticky="w", padx=5, pady=5)
+        # Senior
+        senior_start_row = 21
+        tk.Label(self, text="Senior", font=("Helvetica", 10, "underline")).grid(row=senior_start_row, column=0, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Enable").grid(row=senior_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Senior Enable"]).grid(row=senior_start_row + 1, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Senior percentage").grid(row=senior_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        self.entries["Senior Percentage"].grid(row=senior_start_row + 2, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Senior column").grid(row=senior_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Senior Column"] = ttk.Combobox(self, values=list(statment_columns))
-        self.entries["Senior Column"].grid(row=23, column=3)
+        self.entries["Senior Column"].grid(row=senior_start_row + 2, column=3)
 
-        # combinations
-
-        tk.Label(self, text="Combinations", font=("Helvetica", 10, "underline")).grid(row=24, column=0, sticky="w", padx=5, pady=5)
+        # Combinations
+        combinations_start_row = 24
+        tk.Label(self, text="Combinations", font=("Helvetica", 10, "underline")).grid(row=combinations_start_row, column=0, sticky="w", padx=5, pady=5)
         
         self.entries["Combinations EB_LT"] = tk.BooleanVar()
-        tk.Label(self, text="Early booking with long term").grid(row=25, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Combinations EB_LT"]).grid(row=25, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking with long term").grid(row=combinations_start_row + 1, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_LT"]).grid(row=combinations_start_row + 1, column=1, sticky="w", padx=5, pady=5)
         
         self.entries["Combinations EB_Reduc"] = tk.BooleanVar()
-        tk.Label(self, text="Early booking with reduction").grid(row=26, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Combinations EB_Reduc"]).grid(row=26, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking with reduction").grid(row=combinations_start_row + 2, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_Reduc"]).grid(row=combinations_start_row + 2, column=1, sticky="w", padx=5, pady=5)
         
         self.entries["Combinations EB_Senior"] = tk.BooleanVar()
-        tk.Label(self, text="Early booking with senior").grid(row=27, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["Combinations EB_Senior"]).grid(row=27, column=1, sticky="w", padx=5, pady=5)
+        tk.Label(self, text="Early booking with senior").grid(row=combinations_start_row + 3, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["Combinations EB_Senior"]).grid(row=combinations_start_row + 3, column=1, sticky="w", padx=5, pady=5)
 
         self.entries["sbi"] = tk.BooleanVar()
-        tk.Label(self, text="Spo by arrival").grid(row=28, column=0, sticky="w", padx=5, pady=5)
-        tk.Checkbutton(self, variable=self.entries["sbi"]).grid(row=28, column=1, sticky="w", padx=5, pady=5)
-
+        tk.Label(self, text="Spo by arrival").grid(row=combinations_start_row + 4, column=0, sticky="w", padx=5, pady=5)
+        tk.Checkbutton(self, variable=self.entries["sbi"]).grid(row=combinations_start_row + 4, column=1, sticky="w", padx=5, pady=5)
     def get_entries(self):
         updated_entries = {}
         for key, entry in self.entries.items():
