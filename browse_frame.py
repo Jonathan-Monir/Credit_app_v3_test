@@ -10,14 +10,16 @@ from tkcalendar import Calendar, DateEntry
 from PIL import Image, ImageTk
 from contract import Contract
 import sqlite3
-from datetime import datetime
 from invoice import Invoice
 import os
 import sys
 from pandastable import Table
 import numpy as np
 
-import datetime
+import warnings
+
+# Filter out the specific FutureWarning
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 pd.set_option('display.max_columns', None)
@@ -286,8 +288,11 @@ class ContractFrame(tk.Frame):
                 else:
                     # show contract_name error in tkinter as a label in red
                     tk.Label(self, text=f"{contract_name} has an error", font=("Helvetica", 10, "underline"), fg="red").grid(column=0, sticky="w", padx=5, pady=5)
-                    
+                    self.active_app = False
                 
+            if not(self.active_app):
+                
+                messagebox.showwarning("Warning", "There are contracts that are not active and may lead to errors")
             
             # self.reductions = {}
             # for prop in ["enable","amount","column"]:
@@ -859,6 +864,7 @@ class ApplySetup(ttk.Frame):
             prices = invoice.prices
             date_prices = invoice.Index_contract_date_range_dict
 
+            statment = invoice.output_statment
             output_folder = "output"
             # Create the output folder if it doesn't exist
             if not os.path.exists(output_folder):

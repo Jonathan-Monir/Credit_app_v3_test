@@ -111,10 +111,14 @@ class FileUploader:
 
         return statment_fix
 
-    def fix_overlap(self, df):
+    def fix_overlap(self, df, contracts_activity):
         dictionary_items = df.copy().items()
 
         for sheet_name, sheet_data in dictionary_items:
+            
+            if not(contracts_activity[sheet_name]):
+                continue
+            
             last_fixed_index = 0
             part = 0
             overlap = False
@@ -132,6 +136,7 @@ class FileUploader:
                 if overlap:
                     df[sheet_name + " part: "+ str(part)] = sheet_data.iloc[last_fixed_index:]
                     del df[sheet_name]
+        
         return df
     
     def check_statment(self, statment):
@@ -182,13 +187,12 @@ class FileUploader:
                 
                 contract.dropna(subset=['first date', 'second date'], inplace=True)
                 
-                if sheet_name == "contract":
-                    print(contract)
+                    
                 active = ~(contract["activity"] == 0).any()
                 
                 contracts[sheet_name], contracts_activity[sheet_name] = contract, active
         
-        contracts = self.fix_overlap(contracts)
+        contracts = self.fix_overlap(contracts,contracts_activity)
         
         # fixed_contracts = {k: contracts[k] for k in contracts if k != "contract"}
         # fixed_contracts["contract"] = contracts["contract"]

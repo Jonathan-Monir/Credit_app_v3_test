@@ -1,16 +1,19 @@
 import pandas as pd
 from contract import Contract
+from file_uploader import FileUploader
+from contract import Contract
 
 class Invoice:
-    def __init__(self, df, offers_dict):
+    def __init__(self, df, offers_dict=None):
         self.df = df
         self.statment = self.df.statment
         self.contracts_sheets = self.df.contracts_sheets
         self.contract_activity = self.df.contracts_activity
-        self.offers_dict = offers_dict
+        self.offers_dict = self.make_contracts_dict(self.contracts_sheets, self.contract_activity) if offers_dict is None else offers_dict
         self.metrices = self.invoicesMetrics()
         self.prices = self.metrices[0]
         self.Index_contract_date_range_dict = self.metrices[1]
+        self.output_statment = self.metrices[2]
 
         
     def oneContractDates(self,invoice, contract):
@@ -130,6 +133,7 @@ class Invoice:
                     for contract_name, contract_object in reversed(self.offers_dict.items()):
                         if (invoice["Departure"]-invoice["Arrival"]).days == 0:
                             break
+                        
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:
                             
                             # contract not active
@@ -139,7 +143,7 @@ class Invoice:
                                 
                                 if (self.statment.loc[index,"error_type"]):
                                     self.statment.loc[index,"error_type"] += ", "
-                                self.statment.loc[index,"error_type"] += f"error in it's contract ({contract_name})"
+                                self.statment.loc[index,"error_type"] += f"error in it's spo ({contract_name})"
                                 
                                 break
                             
@@ -197,7 +201,16 @@ class Invoice:
                     
                     continue
                     
-        return index_price_dict, Index_contract_date_range_dict
+        return index_price_dict, Index_contract_date_range_dict, self.statment
 
 
 
+if __name__ == "__main__":
+    
+    # Contract
+    # FileUploader
+    
+    file = FileUploader("test files\Biblio- Grand 23-24.Invo.xlsx")
+    invoice = Invoice(file)
+    
+    print(invoice.output_statment["error_type"])
