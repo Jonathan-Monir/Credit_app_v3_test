@@ -12,10 +12,43 @@ warnings.filterwarnings("ignore", message="Setting an item of incompatible dtype
 # Suppress UserWarnings related to openpyxl
 warnings.filterwarnings("ignore", message="Data Validation extension is not supported and will be removed", category=UserWarning)
 
+
+import tkinter as tk
+from tkinter import ttk
+
+class LoginFrame(tk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.parent = parent
+
+        self.username_label = ttk.Label(self, text="Username:")
+        self.username_entry = ttk.Entry(self)
+
+        self.password_label = ttk.Label(self, text="Password:")
+        self.password_entry = ttk.Entry(self, show="*")
+
+
+        self.username_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.username_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.password_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.password_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        
+        self.invalid_label = tk.Label(self, text="", fg="red")
+        self.invalid_label.grid(row=3, columnspan=2)
+
+    def show_invalid_message(self):
+        self.invalid_label.config(text="Invalid username or password")
+
+
+
+
 class ToggleMenu(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         
+
         self.configure(highlightbackground="black", highlightthickness=2)
 
         self.parent = parent
@@ -38,7 +71,10 @@ class ToggleMenu(tk.Frame):
         # Initially display the browse page and show the menu at the top
         self.pack(fill=tk.X, expand=False)  # Pack the menu at the top without expansion
         self.show_browse()
+
+
         
+
     def show_page(self, page_name):
         if self.current_page_name:
             self.pages[self.current_page_name].pack_forget()  # Hide current page
@@ -77,12 +113,34 @@ class App(tk.Tk):
         self.minsize(600, 600)
         # self.attributes('-fullscreen', True)
         self.iconbitmap(r"images\logo.ico")
-        self.toggle_menu = ToggleMenu(self)  # Create the toggle menu
+
+        
+        self.login_frame = LoginFrame(self)
+        self.login_frame.pack()
+
+        self.login_button = ttk.Button(self, text="Login", command=self.login_submit)
+        self.login_button.pack()
+        
 
         # Create quit button
         self.quit_button = ttk.Button(self, text="Quit", command=self.quit_app)
         self.quit_button.pack(side=tk.BOTTOM, anchor=tk.SE, padx=5, pady=5)
 
+    def login_submit(self):
+        username = self.login_frame.username_entry.get()
+        password = self.login_frame.password_entry.get()
+
+        if username == "Admin" and password == "3696559":
+            self.login_frame.destroy()
+            self.login_button.destroy()
+            
+            self.toggle_menu = ToggleMenu(self)  # Create the toggle menu
+
+        else:
+            self.login_frame.show_invalid_message()
+
+
+    
     def quit_app(self):
         self.destroy()
         

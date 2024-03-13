@@ -31,5 +31,15 @@ class Contract:
         self.start_date = start_date if start_date is not None else self.contract_sheet.loc[0,"first date"]
         self.end_date = end_date if end_date is not None else self.contract_sheet.loc[len(contract_sheet)-1,"second date"]
 
-    
+        self.contract_dictionary = {
+                    "eb1": EarlyBooking1,
+                    "eb2": EarlyBooking2,
+                    "lt": LongTerm,
+                    "senior": Senior,
+                    "reduc1": Reduction1,
+                    "reduc2": Reduction2,
+                    "combinations": combinations,
+                    "activity": activity,
+                    "sbi": sbi
+                }    
 

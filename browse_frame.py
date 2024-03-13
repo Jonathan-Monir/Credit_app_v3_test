@@ -192,45 +192,75 @@ class SetupContract(ttk.Frame):
         
     
 class ContractSetting(ttk.Frame):
-    def __init__(self,parent):
+    def __init__(self, parent):
         super().__init__(parent)
-        self.pack(expand=True,fill='both')
+        self.pack(expand=True, fill='both')
 
-        self.name_contract_dict = {contract.filename:contract for contract in container}
+        self.name_contract_dict = {contract.filename: contract for contract in container}
         self.current_file = None
-        
 
-        
         tk.Label(self, text="choose setup file", font=("Helvetica", 10, "underline")).grid(row=0, column=0, sticky="w", padx=5, pady=10)
-        
+
         self.setup_file = tk.Listbox(self, listvariable=tk.StringVar(value=[file.filename for file in container]))
-        self.setup_file.bind('<Double-1>', self.refresh_page)   # Bind to selection event
-        self.setup_file.grid(row=1, column=0, sticky="w", padx=5, pady=10,rowspan=8)  # Corrected this line
-        
+        self.setup_file.bind('<Double-1>', self.refresh_page)  # Bind to selection event
+        self.setup_file.grid(row=1, column=0, sticky="w", padx=5, pady=10, rowspan=8)  # Corrected this line
+
         tk.Label(self, text="change setup", font=("Helvetica", 10, "underline")).grid(column=0, sticky="w", padx=0, pady=0)
-        table_names = list(ApplySetup.get_tables(self).keys())
-        
+        table_names = list(get_tables().keys())
+
         table_names.insert(0, 'None')
         self.initialized_setup = ttk.Combobox(self, values=table_names)
         self.initialized_setup.grid(column=0, sticky="w", padx=5, pady=10)
         self.initialized_setup.bind("<<ComboboxSelected>>", self.refresh_page)
-        
+
+        # Button for deleting and deactivating a table
+        self.delete_button = tk.Button(self, text="Delete setup", command=self.deactivate_table_column)
+        self.delete_button.grid(row=2, column=1, sticky="w", padx=5, pady=10)
+
         self.contract_frame = ContractFrame(self)
-        self.contract_frame.grid(column = 0, columnspan=2)
+        self.contract_frame.grid(column=0, columnspan=2)
+
 
     def refresh_page(self, event):
         
         
+
         self.contract_frame.destroy()
-        
-        if len(self.setup_file.curselection()) == 0:
-            self.current_file = 0
+        if len(self.initialized_setup.get()) == 0 or self.initialized_setup.get() == "None":
+            self.current_setup = False
         else:
-            self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
+            self.current_setup = get_offer_contract_data(self.initialized_setup.get())
         
-        self.contract_frame = ContractFrame(self, self.current_file, self.initialized_setup.get())
+        try: 
+            self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
+        except:
+            self.current_file = False
+
+        self.contract_frame = ContractFrame(self, self.current_file, self.current_setup)
         self.contract_frame.grid(column = 0, columnspan=2)
 
+
+    def deactivate_table_column(self):
+        # Connect to the database
+        conn = sqlite3.connect('setups.db')
+        cursor = conn.cursor()
+        table_name = self.initialized_setup.get()
+        # Check if the column exists in the table
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = cursor.fetchall()
+        active_column_exists = any(column[1] == 'active_table' for column in columns)
+
+        # If the column doesn't exist, add it to the table
+        if not active_column_exists:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN active_table INTEGER DEFAULT 0")
+
+        # Update all rows to set the value of 'active_table' column to 0
+        cursor.execute(f"UPDATE {table_name} SET active_table = 0")
+
+        # Commit the changes and close the connection
+        conn.commit()
+        conn.close()        
+        self.refresh_page(None)
 # import tkinter as tk
 from tkinter import messagebox
 
@@ -244,9 +274,13 @@ class ContractFrame(tk.Frame):
             tk.Label(self, text="Please choose a file to make the setup", font=("Helvetica", 24)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
 
         else:
-            
             self.initialized_setup = initialized_setup
             self.current_file = current_file
+            contracts_activity = current_file.contracts_activity
+            
+            if not initialized_setup:
+                initialized_setup = Invoice.make_contracts_dict(self, current_file.contracts_sheets, contracts_activity)
+                self.initialized_setup = {contract_name:contract_obj.contract_dictionary for contract_name, contract_obj in initialized_setup.items()}
             
             tk.Label(self, text="Setup name", font=("Helvetica", 10, "underline")).grid(row=1, column=0, sticky="w", padx=0, pady=0)
             self.setup_name = tk.Text(self, height = 1, width = 15)
@@ -277,11 +311,12 @@ class ContractFrame(tk.Frame):
             statment_columns = current_file.statment.columns
             self.entries_dict = {}
             
-            contracts_activity = current_file.contracts_activity
+            
+            self.active_app = True
             
             for contract_name, contract_sheet in current_file.contracts_sheets.items():
                 if contracts_activity[contract_name]:
-                    self.entries_dict[contract_name] = CreateWidgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns)
+                    self.entries_dict[contract_name] = CreateWidgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=statment_columns,initialized_setup=self.initialized_setup)
                     self.entries_dict[contract_name].grid(pady=20)
                     rank+=1
                 
@@ -352,83 +387,7 @@ class ContractFrame(tk.Frame):
         self.destroy()
         self.__init__(self.parent)
         
-    def save_to_database(self, all_offer_contract_dict):
-        # Connect to the SQLite database
-        conn = sqlite3.connect(resource_path('setups.db'))
-        c = conn.cursor()
-        
-        # Create a table to store the data
 
-        # Insert data into the table
-        for offer_name, offer_data in all_offer_contract_dict.items():
-            c.execute(f'''CREATE TABLE IF NOT EXISTS {offer_name}
-                (contract_name TEXT PRIMARY KEY,
-                offer_name TEXT,
-                offer_data TEXT,
-                eb1_enable BOOLEAN,
-                eb1_percentage REAL,
-                eb1_date DATE,
-                eb2_enable BOOLEAN,
-                eb2_percentage REAL,
-                eb2_date DATE,
-                reduc1_enable BOOLEAN,
-                reduc1_percentage REAL,
-                reduc1_column TEXT,
-                reduc2_enable BOOLEAN,
-                reduc2_percentage REAL,
-                reduc2_column TEXT,
-                lt_enable BOOLEAN,
-                lt_percentage REAL,
-                lt_days INTEGER,
-                senior_enable BOOLEAN,
-                senior_percentage REAL,
-                senior_column TEXT,
-                combinations_eb_lt TEXT,
-                combinations_eb_reduc TEXT,
-                combinations_eb_senior TEXT,
-                start_date DATE,
-                end_date DATE,
-                active INTEGER,
-                sbi BOOLEAN)''')
-            for contract_name, contract_data in offer_data.items():
-                eb1_enable = contract_data["eb1"]["enable"]
-                eb1_percentage = contract_data["eb1"]["percentage"]
-                eb1_date = contract_data["eb1"]["date"]
-                
-                eb2_enable = contract_data["eb2"]["enable"]
-                eb2_percentage = contract_data["eb2"]["percentage"]
-                eb2_date = contract_data["eb2"]["date"]
-                
-                reduc1_enable = contract_data["reduc1"]["enable"]
-                reduc1_percentage = contract_data["reduc1"]["percentage"]
-                reduc1_column = contract_data["reduc1"]["column"]
-                
-                reduc2_enable = contract_data["reduc2"]["enable"]
-                reduc2_percentage = contract_data["reduc2"]["percentage"]
-                reduc2_column = contract_data["reduc2"]["column"]
-                
-                lt_enable = contract_data["lt"]["enable"]
-                lt_percentage = contract_data["lt"]["percentage"]
-                lt_days = contract_data["lt"]["days"]
-                
-                senior_enable = contract_data["senior"]["enable"]
-                senior_percentage = contract_data["senior"]["percentage"]
-                senior_column = contract_data["senior"]["column"]
-                
-                start_date = contract_data["start_date"]
-                end_date = contract_data["end_date"]
-
-                combinations_eb_lt = contract_data["combinations"]["eb_lt"]
-                combinations_eb_recuc = contract_data["combinations"]["eb_reduc"]
-                combinations_eb_senior = contract_data["combinations"]["eb_senior"]
-                
-                sbi = contract_data["sbi"]
-                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, reduc1_column, reduc2_enable, reduc2_percentage, reduc2_column, lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, senior_column, combinations_eb_lt, combinations_eb_reduc, combinations_eb_senior, start_date, end_date, active, sbi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (offer_name, contract_name, str(contract_data), eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, str(reduc1_column), reduc2_enable, reduc2_percentage, str(reduc2_column), lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, str(senior_column), combinations_eb_lt, combinations_eb_recuc, combinations_eb_senior, start_date, end_date, 1, sbi))
-
-        # Commit changes and close the connection
-        conn.commit()
-        conn.close()
     
     def submit(self):
         
@@ -583,33 +542,114 @@ class ContractFrame(tk.Frame):
             
         elif len(self.setup_name.get("1.0", "end-1c")) not in table_list:
             tk.Label(self, text="name reapeted text in setup file").grid()
+
+
+    def save_to_database(self, all_offer_contract_dict):
+        # Connect to the SQLite database
+        conn = sqlite3.connect(resource_path('setups.db'))
+        c = conn.cursor()
+        
+        # Create a table to store the data
+
+        # Insert data into the table
+        for offer_name, offer_data in all_offer_contract_dict.items():
+            c.execute(f'''CREATE TABLE IF NOT EXISTS {offer_name}
+                (contract_name TEXT PRIMARY KEY,
+                offer_name TEXT,
+                offer_data TEXT,
+                eb1_enable BOOLEAN,
+                eb1_percentage REAL,
+                eb1_date DATE,
+                eb2_enable BOOLEAN,
+                eb2_percentage REAL,
+                eb2_date DATE,
+                reduc1_enable BOOLEAN,
+                reduc1_percentage REAL,
+                reduc1_column TEXT,
+                reduc2_enable BOOLEAN,
+                reduc2_percentage REAL,
+                reduc2_column TEXT,
+                lt_enable BOOLEAN,
+                lt_percentage REAL,
+                lt_days INTEGER,
+                senior_enable BOOLEAN,
+                senior_percentage REAL,
+                senior_column TEXT,
+                combinations_eb_lt TEXT,
+                combinations_eb_reduc TEXT,
+                combinations_eb_senior TEXT,
+                start_date DATE,
+                end_date DATE,
+                sbi BOOLEAN,
+                active_table INTEGER DEFAULT 1)''')
+
+            for contract_name, contract_data in offer_data.items():
+                eb1_enable = contract_data["eb1"]["enable"]
+                eb1_percentage = contract_data["eb1"]["percentage"]
+                eb1_date = contract_data["eb1"]["date"]
+                
+                eb2_enable = contract_data["eb2"]["enable"]
+                eb2_percentage = contract_data["eb2"]["percentage"]
+                eb2_date = contract_data["eb2"]["date"]
+                
+                reduc1_enable = contract_data["reduc1"]["enable"]
+                reduc1_percentage = contract_data["reduc1"]["percentage"]
+                reduc1_column = contract_data["reduc1"]["column"]
+                
+                reduc2_enable = contract_data["reduc2"]["enable"]
+                reduc2_percentage = contract_data["reduc2"]["percentage"]
+                reduc2_column = contract_data["reduc2"]["column"]
+                
+                lt_enable = contract_data["lt"]["enable"]
+                lt_percentage = contract_data["lt"]["percentage"]
+                lt_days = contract_data["lt"]["days"]
+                
+                senior_enable = contract_data["senior"]["enable"]
+                senior_percentage = contract_data["senior"]["percentage"]
+                senior_column = contract_data["senior"]["column"]
+                
+                start_date = contract_data["start_date"]
+                end_date = contract_data["end_date"]
+
+                combinations_eb_lt = contract_data["combinations"]["eb_lt"]
+                combinations_eb_recuc = contract_data["combinations"]["eb_reduc"]
+                combinations_eb_senior = contract_data["combinations"]["eb_senior"]
+                
+                sbi = contract_data["sbi"]
+                c.execute(f"INSERT INTO {offer_name} (offer_name, contract_name, offer_data, eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, reduc1_column, reduc2_enable, reduc2_percentage, reduc2_column, lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, senior_column, combinations_eb_lt, combinations_eb_reduc, combinations_eb_senior, start_date, end_date, sbi, active_table) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (offer_name, contract_name, str(contract_data), eb1_enable, eb1_percentage, eb1_date, eb2_enable, eb2_percentage, eb2_date, reduc1_enable, reduc1_percentage, str(reduc1_column), reduc2_enable, reduc2_percentage, str(reduc2_column), lt_enable, lt_percentage, lt_days, senior_enable, senior_percentage, str(senior_column), combinations_eb_lt, combinations_eb_recuc, combinations_eb_senior, start_date, end_date, sbi, 1))
+
+        # Commit changes and close the connection
+        conn.commit()
+        conn.close()
             
 class CreateWidgets(tk.Frame):
-    def __init__(self, master, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
+    def __init__(self, master, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns, initialized_setup):
         super().__init__(master)
         self.entries = {}
         self.labels = ["EB1 Enable", "EB1 Percentage", "EB1 Date",
-                       "EB2 Enable", "EB2 Percentage", "EB2 Date",
-                       "LT Enable", "LT Percentage", "LT Days",
-                       "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
-                       "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
-                       "Senior Enable", "Senior Column", "Senior Percentage",
-                       "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior",
-                       "From date", "To date", "sbi"]
-        
+                    "EB2 Enable", "EB2 Percentage", "EB2 Date",
+                    "LT Enable", "LT Percentage", "LT Days",
+                    "Reduc1 Enable", "Reduc1 Column", "Reduc1 Percentage",
+                    "Reduc2 Enable", "Reduc2 Column", "Reduc2 Percentage",
+                    "Senior Enable", "Senior Column", "Senior Percentage",
+                    "Combinations EB_LT", "Combinations EB_Reduc", "Combinations EB_Senior",
+                    "From date", "To date", "sbi"]
+        self.initialized_setup = initialized_setup
         self.create_widgets(contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns)
         self.configure(highlightbackground="black", highlightthickness=2)
 
     def create_widgets(self, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns):
-        self.create_entries(contract_sheet)
+        self.create_entries(contract_sheet, contract_name)
         self.place_navigation_buttons(rank, max_iter, Down, Up, Delete, contract_name)
         self.place_labels(contract_name)
         self.place_additional_widgets(contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns)
 
-    def create_entries(self, contract_sheet):
+    def create_entries(self, contract_sheet, contract_name):
+        self.contract_setup = self.initialized_setup[contract_name]
         for label in self.labels:
             if "enable" in label.lower():
-                self.entries[label] = tk.BooleanVar()
+                self.entries[label] = tk.BooleanVar(value=True)
             elif "From date" in label or "To date" in label or "date" in label.lower():
                 self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
                 if "From date" in label:
@@ -620,7 +660,7 @@ class CreateWidgets(tk.Frame):
                     self.entries[label].set_date(contract_sheet.loc[0, "first date"])
             elif "percentage" in label.lower() or "amount" in label.lower() or "days" in label.lower():
                 self.entries[label] = tk.Entry(self)
-
+        
     def place_navigation_buttons(self, rank, max_iter, Down, Up, Delete, contract_name):
         if rank != 1:
             tk.Button(self, image=Up).grid(row=0, column=3, sticky="w", padx=5, pady=5)
@@ -825,7 +865,7 @@ class ApplySetup(ttk.Frame):
 
         else:
             
-            self.tables = self.get_tables()
+            self.tables = get_tables()
             
             tk.Label(self, text="File name", font=("Helvetica", 14,)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
             
@@ -855,7 +895,7 @@ class ApplySetup(ttk.Frame):
                     offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name])
                     
             else:
-                self.values = self.get_offer_contract_data(setup.get())
+                self.values = get_offer_contract_data(setup.get())
                 
                 for contract_name, contract_data in file.contracts_sheets.items():
                     offers_dict[contract_name] = Contract(contract_name,contract_data,file.contracts_activity[contract_name],self.values[contract_name]["senior"],self.values[contract_name]["earlyBooking1"],self.values[contract_name]["earlyBooking2"],self.values[contract_name]["longTerm"],self.values[contract_name]["reduction1"],self.values[contract_name]["reduction2"],self.values[contract_name]["combinations"],self.values[contract_name]["start_date"],self.values[contract_name]["end_date"])
@@ -899,81 +939,92 @@ class ApplySetup(ttk.Frame):
 
             statment.to_excel(output_file_path, index=False)
 
-    def get_tables(self):
-        db_file = 'setups.db'
-        try:
-            # Connect to the SQLite database
-            conn = sqlite3.connect(db_file)
-            cursor = conn.cursor()
+def get_tables():
+    db_file = 'setups.db'
+    try:
+        # Connect to the SQLite database
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
 
-            # Get a list of all tables in the database
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
+        # Get a list of all tables in the database
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
 
-            # Create a dictionary to store tables and their values
-            tables_and_values = {}
+        # Create a dictionary to store tables and their values
+        tables_and_values = {}
 
-            # Iterate over each table
-            for table in tables:
-                table_name = table[0]
-                # Fetch all rows from the table
-                cursor.execute(f"SELECT * FROM {table_name};")
-                rows = cursor.fetchall()
-                # Store the rows in the dictionary
+        # Iterate over each table
+        for table in tables:
+            table_name = table[0]
+
+            # Check if the table has the 'active_table' column
+            cursor.execute(f"PRAGMA table_info({table_name});")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
+            if 'active_table' not in column_names:
+                # If 'active_table' column doesn't exist, add it with default value 1
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN active_table INTEGER DEFAULT 1;")
+                conn.commit()
+
+            # Fetch all rows from the table
+            cursor.execute(f"SELECT * FROM {table_name} WHERE active_table = 1;")
+            rows = cursor.fetchall()
+            # Store the rows in the dictionary
+            if rows:
                 tables_and_values[table_name] = rows
 
-            # Close the database connection
-            conn.close()
-
-            return tables_and_values
-
-        except sqlite3.Error as e:
-            print("SQLite error:", e)
-            return None
-
-
-
-    def get_offer_contract_data(self, offer_name):
-        conn = sqlite3.connect('setups.db')  # Update 'your_database.db' with your actual database name
-        c = conn.cursor()
-        
-        c.execute(f"SELECT * FROM {offer_name}")
-        rows = c.fetchall()
-        offer_contract_data = {}
-        for row in rows:
-            contract_data = {}
-            contract_data["contract_name"] = row[0]
-            contract_data["offer_name"] = row[1]
-            contract_data["offer_data"] = row[2]
-            
-            eb1 = {"enable": row[3], "percentage": row[4], "date": pd.to_datetime(row[5], format='%d/%m/%Y') if row[5] else None}
-            eb2 = {"enable": row[6], "percentage": row[7], "date": pd.to_datetime(row[8], format='%d/%m/%Y') if row[8] else None}
-            reduc1 = {"enable": row[9], "percentage": row[10], "column": row[11]}
-            reduc2 = {"enable": row[12], "percentage": row[13], "column": row[14]}
-            lt = {"enable": row[15], "percentage": row[16], "days": row[17]}
-            senior = {"enable": row[18], "percentage": row[19], "column": row[20]}
-            combinations = {"eb_lt": row[21], "eb_reduc": row[22], "eb_senior": row[23]}
-            start_date = pd.to_datetime(row[24], format='%d/%m/%Y') if row[24] else None
-            end_date = pd.to_datetime(row[25], format='%d/%m/%Y') if row[25] else None
-            active = row[26]
-            sbi = row[27]
-            
-            contract_data["earlyBooking1"] = eb1
-            contract_data["earlyBooking2"] = eb2
-            contract_data["reduction1"] = reduc1
-            contract_data["reduction2"] = reduc2
-            contract_data["longTerm"] = lt
-            contract_data["senior"] = senior
-            contract_data["combinations"] = combinations
-            contract_data["start_date"] = start_date
-            contract_data["end_date"] = end_date
-            contract_data["active"] = active
-            contract_data["sbi"] = sbi
-
-            offer_contract_data[contract_data['contract_name']] = contract_data
-
+        # Close the database connection
         conn.close()
-        return offer_contract_data
+
+        return tables_and_values
+
+    except sqlite3.Error as e:
+        print("SQLite error:", e)
+        return None
+
+
+
+def get_offer_contract_data(offer_name):
+    conn = sqlite3.connect('setups.db')  # Update 'your_database.db' with your actual database name
+    c = conn.cursor()
+    
+    c.execute(f"SELECT * FROM {offer_name}")
+    rows = c.fetchall()
+    offer_contract_data = {}
+    for row in rows:
+        contract_data = {}
+        contract_data["contract_name"] = row[0]
+        contract_data["offer_name"] = row[1]
+        contract_data["offer_data"] = row[2]
+        
+        eb1 = {"enable": row[3], "percentage": row[4], "date": pd.to_datetime(row[5], format='%d/%m/%Y') if row[5] else None}
+        eb2 = {"enable": row[6], "percentage": row[7], "date": pd.to_datetime(row[8], format='%d/%m/%Y') if row[8] else None}
+        reduc1 = {"enable": row[9], "percentage": row[10], "column": row[11]}
+        reduc2 = {"enable": row[12], "percentage": row[13], "column": row[14]}
+        lt = {"enable": row[15], "percentage": row[16], "days": row[17]}
+        senior = {"enable": row[18], "percentage": row[19], "column": row[20]}
+        combinations = {"eb_lt": row[21], "eb_reduc": row[22], "eb_senior": row[23]}
+        start_date = pd.to_datetime(row[24], format='%d/%m/%Y') if row[24] else None
+        end_date = pd.to_datetime(row[25], format='%d/%m/%Y') if row[25] else None
+        active = row[26]
+        sbi = row[27]
+        
+        contract_data["earlyBooking1"] = eb1
+        contract_data["earlyBooking2"] = eb2
+        contract_data["reduction1"] = reduc1
+        contract_data["reduction2"] = reduc2
+        contract_data["longTerm"] = lt
+        contract_data["senior"] = senior
+        contract_data["combinations"] = combinations
+        contract_data["start_date"] = start_date
+        contract_data["end_date"] = end_date
+        contract_data["active"] = active
+        contract_data["sbi"] = sbi
+
+        offer_contract_data[contract_data['contract_name']] = contract_data
+
+    conn.close()
+    return offer_contract_data
 
 
 ############################################################################

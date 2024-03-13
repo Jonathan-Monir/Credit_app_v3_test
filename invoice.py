@@ -79,15 +79,15 @@ class Invoice:
 
         # Offers
         if contract_object.EarlyBooking1["enable"]:
-            invoice["earlyBooking1"] = (invoice["Res_date"] <= contract_object.EarlyBooking1["date"]) * (contract_object.EarlyBooking1["percentage"]/100)
+            invoice["earlyBooking1"] = (invoice["Res_date"] <= contract_object.EarlyBooking1["date"]) * (int(contract_object.EarlyBooking1["percentage"])/100)
         date_range["earlyBooking1"] = -(invoice["earlyBooking1"] * date_range["price"])
 
         if contract_object.EarlyBooking2["enable"]:
-            invoice["earlyBooking2"] = (invoice["Res_date"] < contract_object.EarlyBooking2["date"] and invoice["Res_date"] > contract_object.EarlyBooking1["date"]) * (contract_object.EarlyBooking2["percentage"]/100)
+            invoice["earlyBooking2"] = (invoice["Res_date"] < contract_object.EarlyBooking2["date"] and invoice["Res_date"] > contract_object.EarlyBooking1["date"]) * (int(contract_object.EarlyBooking2["percentage"])/100)
         date_range["earlyBooking2"] = -(invoice["earlyBooking2"] * date_range["price"])
 
         if contract_object.LongTerm["enable"]:
-            invoice["longTerm"] = ((invoice["Arrival"] - invoice["Departure"]).days >= contract_object.LongTerm["days"]) * (contract_object.LongTerm["percentage"]/100)
+            invoice["longTerm"] = ((invoice["Arrival"] - invoice["Departure"]).days >= contract_object.LongTerm["days"]) * (int(contract_object.LongTerm["percentage"])/100)
         date_range["longTerm"] = -(invoice["longTerm"] * date_range["price"])
 
         if contract_object.Reduction1["enable"]:
@@ -100,14 +100,15 @@ class Invoice:
         if contract_object.Reduction2["enable"]:
             invoice[contract_object.Reduction2["column"]] = invoice[contract_object.Reduction2["column"]].lower().map({'yes': 1, 'no': 0})
             
-            invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (contract_object.Reduction2["percentage"]/100))
+            invoice["Reduction2"] = (invoice[contract_object.Reduction2["column"]] * (int(contract_object.Reduction2["percentage"])/100))
         date_range["reduction2"] = -(invoice["Reduction2"] * date_range["price"])
 
         
         if contract_object.senior["enable"]:
-            invoice[contract_object.senior["column"]] = invoice[contract_object.senior["column"]].lower().map({'yes': 1, 'no': 0})
+            invoice["senior room type"] = invoice[contract_object.senior["Rate code"]].apply(self.senior_mapping)
+
             
-            invoice["senior"] = (invoice[contract_object.senior["column"]] * (contract_object.senior["percentage"]/100))
+            invoice["senior"] = ((invoice[contract_object.senior["column"]]/invoice["senior room type"]) * (contract_object.senior["percentage"]/100))
         date_range["senior"] = -(invoice["senior"] * date_range["price"])
 
         date_range["price with offers"] = date_range["price"] + date_range["earlyBooking1"] + date_range["earlyBooking2"] + date_range["longTerm"]
@@ -115,6 +116,21 @@ class Invoice:
         date_range["total price"] = sum(date_range["total price"])
         date_range["contract name"] = contract_name
         return date_range
+
+        
+    def senior_mapping(self, value):
+        value_lower = value.lower()
+        if value_lower.startswith('s'):
+            return 1
+        elif value_lower.startswith('d'):
+            return 2
+        elif value_lower.startswith('t'):
+            return 3
+        elif value_lower.startswith('q'):
+            return 4
+        else:
+            return value  # Return the original value if it doesn't match any condition
+
 
     def invoicesMetrics(self):
         index_price_dict = {}
