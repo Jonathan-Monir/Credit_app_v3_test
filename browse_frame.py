@@ -17,9 +17,16 @@ from pandastable import Table
 import numpy as np
 
 import warnings
+import os
+
+# Clear the terminal
+os.system('cls' if os.name == 'nt' else 'clear')
+
+warnings.filterwarnings("ignore", message="A value is trying to be set on a copy of a slice from a DataFrame.*")
 
 # Filter out the specific FutureWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
+pd.set_option('mode.chained_assignment', None)
 
 
 pd.set_option('display.max_columns', None)
@@ -190,7 +197,17 @@ class SetupContract(ttk.Frame):
     def update_size(self, event):
         self.canvas.create_window((-1,0), window = self.contract_setting, anchor='nw', width=self.winfo_width(), height=20000)
         
-    
+
+class DotDict:
+    def __init__(self, dictionary):
+        self.__dict__ = dictionary
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
+
+    def __getattr__(self, key):
+        return self.__dict__[key]
+
 class ContractSetting(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -199,7 +216,7 @@ class ContractSetting(ttk.Frame):
         self.name_contract_dict = {contract.filename: contract for contract in container}
         self.current_file = None
 
-        tk.Label(self, text="choose setup file", font=("Helvetica", 10, "underline")).grid(row=0, column=0, sticky="w", padx=5, pady=10)
+        tk.Label(self, text="choose file", font=("Helvetica", 10, "underline")).grid(row=0, column=0, sticky="w", padx=5, pady=10)
 
         self.setup_file = tk.Listbox(self, listvariable=tk.StringVar(value=[file.filename for file in container]))
         self.setup_file.bind('<Double-1>', self.refresh_page)  # Bind to selection event
@@ -215,7 +232,7 @@ class ContractSetting(ttk.Frame):
 
         # Button for deleting and deactivating a table
         self.delete_button = tk.Button(self, text="Delete setup", command=self.deactivate_table_column)
-        self.delete_button.grid(row=2, column=1, sticky="w", padx=5, pady=10)
+        self.delete_button.grid(row=0, column=0, padx=5, pady=15)
 
         self.contract_frame = ContractFrame(self)
         self.contract_frame.grid(column=0, columnspan=2)
@@ -226,15 +243,32 @@ class ContractSetting(ttk.Frame):
         
 
         self.contract_frame.destroy()
-        if len(self.initialized_setup.get()) == 0 or self.initialized_setup.get() == "None":
-            self.current_setup = False
-        else:
+        self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
+
+        if not(len(self.initialized_setup.get()) == 0 ) and not(self.initialized_setup.get() == "None"):
             self.current_setup = get_offer_contract_data(self.initialized_setup.get())
+            for contract_name in self.current_setup.keys():
+                self.current_setup[contract_name] = { "eb1": self.current_setup[contract_name]["earlyBooking1"],
+                    "eb2": self.current_setup[contract_name]["earlyBooking2"],
+                    "reduc1": self.current_setup[contract_name]["reduction1"],
+                    "reduc2": self.current_setup[contract_name]["reduction2"],
+                    "lt": self.current_setup[contract_name]["longTerm"],
+                    "senior": self.current_setup[contract_name]["senior"],
+
+                    "combinations": self.current_setup[contract_name]["combinations"],
+                    "start_date": self.current_setup[contract_name]["start_date"],
+
+                    "end_date": self.current_setup[contract_name]["end_date"],
+                    "sbi": self.current_setup[contract_name]["sbi"],
+
+                }
+
+                self.current_setup[contract_name] = DotDict(self.current_setup[contract_name])
+            #print(self.current_setup.contract) 
         
-        try: 
-            self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
-        except:
-            self.current_file = False
+        else:
+            self.current_setup = Invoice.make_contracts_dict(self,self.current_file.contracts_sheets,self.current_file.contracts_activity)
+
 
         self.contract_frame = ContractFrame(self, self.current_file, self.current_setup)
         self.contract_frame.grid(column = 0, columnspan=2)
@@ -278,9 +312,9 @@ class ContractFrame(tk.Frame):
             self.current_file = current_file
             contracts_activity = current_file.contracts_activity
             
-            if not initialized_setup:
-                initialized_setup = Invoice.make_contracts_dict(self, current_file.contracts_sheets, contracts_activity)
-                self.initialized_setup = {contract_name:contract_obj.contract_dictionary for contract_name, contract_obj in initialized_setup.items()}
+            #if not initialized_setup:
+                #initialized_setup = Invoice.make_contracts_dict(self, current_file.contracts_sheets, contracts_activity)
+                #self.initialized_setup = {contract_name:contract_obj.contract_dictionary for contract_name, contract_obj in initialized_setup.items()}
             
             tk.Label(self, text="Setup name", font=("Helvetica", 10, "underline")).grid(row=1, column=0, sticky="w", padx=0, pady=0)
             self.setup_name = tk.Text(self, height = 1, width = 15)
@@ -647,20 +681,74 @@ class CreateWidgets(tk.Frame):
 
     def create_entries(self, contract_sheet, contract_name):
         self.contract_setup = self.initialized_setup[contract_name]
-        for label in self.labels:
-            if "enable" in label.lower():
-                self.entries[label] = tk.BooleanVar(value=True)
-            elif "From date" in label or "To date" in label or "date" in label.lower():
-                self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
-                if "From date" in label:
-                    self.entries[label].set_date(contract_sheet.loc[0, "first date"])
-                elif "To date" in label:
-                    self.entries[label].set_date(contract_sheet.loc[len(contract_sheet) - 1, "second date"])
-                else:
-                    self.entries[label].set_date(contract_sheet.loc[0, "first date"])
-            elif "percentage" in label.lower() or "amount" in label.lower() or "days" in label.lower():
-                self.entries[label] = tk.Entry(self)
+        #for label in self.labels:
+            #if "enable" in label.lower():
+                #self.entries[label] = tk.BooleanVar()
+            #elif "From date" in label or "To date" in label or "date" in label.lower():
+                #self.entries[label] = DateEntry(self, date_pattern="dd/mm/yyyy")
+                #if "From date" in label:
+                    #self.entries[label].set_date(contract_sheet.loc[0, "first date"])
+                #elif "To date" in label:
+                    #self.entries[label].set_date(contract_sheet.loc[len(contract_sheet) - 1, "second date"])
+                #else:
+                    #self.entries[label].set_date(contract_sheet.loc[0, "first date"])
+            #elif "percentage" in label.lower() or "amount" in label.lower() or "days" in label.lower():
+                #self.entries[label] = tk.Entry(self)
+                
+            
         
+        self.entries["EB1 Enable"] = tk.BooleanVar(value=self.contract_setup.eb1['enable'])
+        self.entries["EB1 Percentage"] = tk.Entry(self)
+        self.entries["EB1 Percentage"].delete(0,tk.END)
+        self.entries["EB1 Percentage"].insert(0,self.contract_setup.eb1["percentage"])
+        self.entries["EB1 Date"] = DateEntry(self)
+        self.entries["EB1 Date"].set_date(self.contract_setup.eb1['date'])
+
+        self.entries["EB2 Enable"] = tk.BooleanVar(value=self.contract_setup.eb2['enable'])
+        self.entries["EB2 Percentage"] = tk.Entry(self)
+        self.entries["EB2 Percentage"].delete(0,tk.END)
+        self.entries["EB2 Percentage"].insert(0,self.contract_setup.eb2["percentage"])
+        self.entries["EB2 Date"] = DateEntry(self)
+        self.entries["EB2 Date"].set_date(self.contract_setup.eb2['date'])
+
+        self.entries["LT Enable"] = tk.BooleanVar(value=self.contract_setup.lt['enable'])
+        self.entries["LT Percentage"] = tk.Entry(self)
+        self.entries["LT Percentage"].delete(0,tk.END)
+        self.entries["LT Percentage"].insert(0,self.contract_setup.lt["percentage"])
+        self.entries["LT Days"] = tk.Entry(self)
+        self.entries["LT Days"].delete(0,tk.END)
+        self.entries["LT Days"].insert(0,self.contract_setup.lt['days'])
+
+        self.entries["Reduc1 Enable"] = tk.BooleanVar(value=self.contract_setup.reduc1['enable'])
+        self.entries["Reduc1 Percentage"] = tk.Entry(self)
+        self.entries["Reduc1 Percentage"].delete(0,tk.END)
+        self.entries["Reduc1 Percentage"].insert(0,self.contract_setup.reduc1["percentage"])
+
+        self.entries["Reduc2 Enable"] = tk.BooleanVar(value=self.contract_setup.reduc2['enable'])
+        
+
+        self.entries["Reduc2 Percentage"] = tk.Entry(self)
+        self.entries["Reduc2 Percentage"].delete(0,tk.END)
+        self.entries["Reduc2 Percentage"].insert(0,self.contract_setup.reduc2["percentage"])
+
+        self.entries["Senior Enable"] = tk.BooleanVar(value=self.contract_setup.senior['enable'])
+        self.entries["Senior Percentage"] = tk.Entry(self)
+        self.entries["Senior Percentage"].delete(0,tk.END)
+        self.entries["Senior Percentage"].insert(0,self.contract_setup.senior["percentage"])
+
+        self.entries["Combinations EB_LT"] = tk.IntVar(value=self.contract_setup.combinations['eb_lt'])
+        self.entries["Combinations EB_Reduc"] = tk.IntVar(value=self.contract_setup.combinations['eb_reduc'])
+        self.entries["Combinations EB_Senior"] = tk.IntVar(value=self.contract_setup.combinations['eb_senior'])
+
+        self.entries["From date"] = DateEntry(self)
+        self.entries["From date"].set_date(self.contract_setup.start_date)
+
+        self.entries["To date"] = DateEntry(self)
+        self.entries["To date"].set_date(self.contract_setup.end_date)
+
+        self.entries["sbi"] = tk.BooleanVar(value=self.contract_setup.sbi)
+
+
     def place_navigation_buttons(self, rank, max_iter, Down, Up, Delete, contract_name):
         if rank != 1:
             tk.Button(self, image=Up).grid(row=0, column=3, sticky="w", padx=5, pady=5)
@@ -730,6 +818,7 @@ class CreateWidgets(tk.Frame):
         self.entries["Reduc1 Percentage"].grid(row=reduc1_start_row + 2, column=1, sticky="w", padx=5, pady=5)
         tk.Label(self, text="Reduction 1 column").grid(row=reduc1_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Reduc1 Column"] = ttk.Combobox(self, values=list(statment_columns))
+        self.entries["Reduc1 Column"].set(self.contract_setup.reduc1['column'])
         self.entries["Reduc1 Column"].grid(row=reduc1_start_row + 2, column=3)
 
         # Reduction 2
@@ -741,6 +830,7 @@ class CreateWidgets(tk.Frame):
         self.entries["Reduc2 Percentage"].grid(row=reduc2_start_row + 2, column=1, sticky="w", padx=5, pady=5)
         tk.Label(self, text="Reduction 2 column").grid(row=reduc2_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Reduc2 Column"] = ttk.Combobox(self, values=list(statment_columns))
+        self.entries["Reduc2 Column"].set(self.contract_setup.reduc2['column'])
         self.entries["Reduc2 Column"].grid(row=reduc2_start_row + 2, column=3)
 
         # Long term
@@ -753,6 +843,7 @@ class CreateWidgets(tk.Frame):
         tk.Label(self, text="Long term days").grid(row=lt_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["LT Days"].grid(row=lt_start_row + 2, column=3, sticky="w", padx=5, pady=5)
 
+
         # Senior
         senior_start_row = 21
         tk.Label(self, text="Senior", font=("Helvetica", 10, "underline")).grid(row=senior_start_row, column=0, sticky="w", padx=5, pady=5)
@@ -762,25 +853,22 @@ class CreateWidgets(tk.Frame):
         self.entries["Senior Percentage"].grid(row=senior_start_row + 2, column=1, sticky="w", padx=5, pady=5)
         tk.Label(self, text="Senior column").grid(row=senior_start_row + 2, column=2, sticky="w", padx=5, pady=5)
         self.entries["Senior Column"] = ttk.Combobox(self, values=list(statment_columns))
+        self.entries["Senior Column"].set(self.contract_setup.senior['column'])
         self.entries["Senior Column"].grid(row=senior_start_row + 2, column=3)
 
         # Combinations
         combinations_start_row = 24
         tk.Label(self, text="Combinations", font=("Helvetica", 10, "underline")).grid(row=combinations_start_row, column=0, sticky="w", padx=5, pady=5)
         
-        self.entries["Combinations EB_LT"] = tk.BooleanVar()
         tk.Label(self, text="Early booking with long term").grid(row=combinations_start_row + 1, column=0, sticky="w", padx=5, pady=5)
         tk.Checkbutton(self, variable=self.entries["Combinations EB_LT"]).grid(row=combinations_start_row + 1, column=1, sticky="w", padx=5, pady=5)
         
-        self.entries["Combinations EB_Reduc"] = tk.BooleanVar()
         tk.Label(self, text="Early booking with reduction").grid(row=combinations_start_row + 2, column=0, sticky="w", padx=5, pady=5)
         tk.Checkbutton(self, variable=self.entries["Combinations EB_Reduc"]).grid(row=combinations_start_row + 2, column=1, sticky="w", padx=5, pady=5)
         
-        self.entries["Combinations EB_Senior"] = tk.BooleanVar()
         tk.Label(self, text="Early booking with senior").grid(row=combinations_start_row + 3, column=0, sticky="w", padx=5, pady=5)
         tk.Checkbutton(self, variable=self.entries["Combinations EB_Senior"]).grid(row=combinations_start_row + 3, column=1, sticky="w", padx=5, pady=5)
 
-        self.entries["sbi"] = tk.BooleanVar()
         tk.Label(self, text="Spo by arrival").grid(row=combinations_start_row + 4, column=0, sticky="w", padx=5, pady=5)
         tk.Checkbutton(self, variable=self.entries["sbi"]).grid(row=combinations_start_row + 4, column=1, sticky="w", padx=5, pady=5)
     def get_entries(self):
@@ -985,7 +1073,7 @@ def get_tables():
 
 
 def get_offer_contract_data(offer_name):
-    conn = sqlite3.connect('setups.db')  # Update 'your_database.db' with your actual database name
+    conn = sqlite3.connect('setups.db')  # Update 'setups.db' with your actual database name
     c = conn.cursor()
     
     c.execute(f"SELECT * FROM {offer_name}")
@@ -997,17 +1085,17 @@ def get_offer_contract_data(offer_name):
         contract_data["offer_name"] = row[1]
         contract_data["offer_data"] = row[2]
         
-        eb1 = {"enable": row[3], "percentage": row[4], "date": pd.to_datetime(row[5], format='%d/%m/%Y') if row[5] else None}
-        eb2 = {"enable": row[6], "percentage": row[7], "date": pd.to_datetime(row[8], format='%d/%m/%Y') if row[8] else None}
+        eb1 = {"enable": row[3], "percentage": row[4], "date": parse_date(row[5])}
+        eb2 = {"enable": row[6], "percentage": row[7], "date": parse_date(row[8])}
         reduc1 = {"enable": row[9], "percentage": row[10], "column": row[11]}
         reduc2 = {"enable": row[12], "percentage": row[13], "column": row[14]}
         lt = {"enable": row[15], "percentage": row[16], "days": row[17]}
         senior = {"enable": row[18], "percentage": row[19], "column": row[20]}
         combinations = {"eb_lt": row[21], "eb_reduc": row[22], "eb_senior": row[23]}
-        start_date = pd.to_datetime(row[24], format='%d/%m/%Y') if row[24] else None
-        end_date = pd.to_datetime(row[25], format='%d/%m/%Y') if row[25] else None
-        active = row[26]
-        sbi = row[27]
+        start_date = parse_date(row[24])
+        end_date = parse_date(row[25])
+        sbi = row[26]
+        active = row[27]
         
         contract_data["earlyBooking1"] = eb1
         contract_data["earlyBooking2"] = eb2
@@ -1025,6 +1113,37 @@ def get_offer_contract_data(offer_name):
 
     conn.close()
     return offer_contract_data
+
+
+def parse_date(date_string):
+    if date_string:
+        # Define a list of possible date formats
+        date_formats = [
+            '%m/%d/%y', '%m-%d-%y', '%Y-%m-%d', '%d-%m-%Y',  # Various common formats
+            '%m/%d/%Y', '%m-%d-%Y', '%d-%m-%y', '%d/%m/%y',  # More variations
+            '%b %d, %Y', '%B %d, %Y',  # Month name abbreviations and full names
+            '%b %d %Y', '%B %d %Y', '%b. %d, %Y', '%B. %d, %Y',  # With or without dots after month abbreviation
+            '%d %b %Y', '%d %B %Y',  # Day and month swapped
+            '%Y/%m/%d', '%Y-%m-%d %H:%M:%S'  # ISO format with or without time
+        ]
+
+        # Try to match the date string with the regular expressions for the defined formats
+        for date_format in date_formats:
+            try:
+                parsed_date = pd.to_datetime(date_string, format=date_format)
+                return parsed_date
+            except ValueError:
+                continue
+
+        # If none of the formats matched, return None or handle the case as per your requirement
+        return None
+    return None
+
+
+
+
+
+
 
 
 ############################################################################
@@ -1052,3 +1171,12 @@ class DifferenceTable(ttk.Frame):
 
         # Optionally, customize table appearance (e.g., column widths, font)
         table.show()
+
+        
+if __name__ == "__main__":
+    global container
+    container = [FileUploader("test files\Biblio- Resort 23-24 . Invo.xlsx")]
+    root = tk.Tk()
+    root.geometry("800x600")
+    app = SetupContract(root)
+    root.mainloop()

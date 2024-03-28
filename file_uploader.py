@@ -4,6 +4,14 @@ import openpyxl
 import pandas as pd
 import numpy as np
 from contract import Contract
+import warnings
+import os
+
+# Clear the terminal
+os.system('cls' if os.name == 'nt' else 'clear')
+
+warnings.filterwarnings("ignore", message="A value is trying to be set on a copy of a slice from a DataFrame.*")
+
 
 class FileUploader:
     
@@ -235,6 +243,6 @@ class FileUploader:
 
     
 if __name__ == "__main__":
-    file = FileUploader("test files\Biblio- Grand 23-24.Invo.xlsx")
+    file = FileUploader("test files\Biblio- Resort 23-24 . Invo.xlsx")
     statment, contracts_sheets, contracts_activity = file.fix_file()
-    print(contracts_activity)
+    print(statment)

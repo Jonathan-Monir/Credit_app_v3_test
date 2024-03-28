@@ -2,7 +2,15 @@ import pandas as pd
 from contract import Contract
 from file_uploader import FileUploader
 from contract import Contract
+import warnings
+from datetime import datetime, timedelta
 
+
+# Clear the terminal
+
+warnings.filterwarnings("ignore", message="A value is trying to be set on a copy of a slice from a DataFrame.*")
+
+warnings.filterwarnings("ignore")
 class Invoice:
     def __init__(self, df, offers_dict=None):
         self.df = df
@@ -16,7 +24,7 @@ class Invoice:
         self.output_statment = self.metrices[2]
 
         
-    def oneContractDates(self,invoice, contract):
+    def oneContractDates(self,invoice, contract, index):
         first_date = contract.loc[0,"first date"]
         last_date = contract.loc[len(contract)-1,"second date"]
         rate_code = invoice["Rate code"]
@@ -44,8 +52,11 @@ class Invoice:
         #outside right (Departure > last date)
         elif invoice["Departure"] > last_date:
             date_range.loc[0,"first date"] = invoice["Arrival"]
-            invoice["Arrival"] = last_date
+            date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] +timedelta(days=1)
+            invoice["Arrival"] = last_date + timedelta(days=1)
 
+            if index == 2:
+                print()
         
 
         date_range = date_range[["first date","second date",rate_code]]
@@ -59,9 +70,12 @@ class Invoice:
         return contract_dict
 
     def optimize_invoice_offers(self, index, invoice, contract_name, contract_object, date_range, last_day_removal=True):
+        
+        #if index == 0 and contract_name == "spo 21.12 to 14.01":
+            #print(invoice)
+            
         if last_day_removal:
             date_range.loc[len(date_range)-1,"second date"] = date_range.loc[len(date_range)-1,"second date"] - pd.to_timedelta(1, unit='d')
-        
         date_range["earlyBooking1"] = 0
         date_range["earlyBooking2"] = 0
         date_range["longTerm"] = 0
@@ -149,7 +163,7 @@ class Invoice:
                     for contract_name, contract_object in reversed(self.offers_dict.items()):
                         if (invoice["Departure"]-invoice["Arrival"]).days == 0:
                             break
-                        
+                        self.contract_name = contract_name
                         if invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date:
                             
                             # contract not active
@@ -174,10 +188,11 @@ class Invoice:
                                 
                                 break
                             
-                            new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet)
-                                
-                            date_range = pd.merge(date_range,new_date_range, how='outer')
+                            new_date_range,invoice = self.oneContractDates(invoice,contract_object.contract_sheet,index)
 
+                            date_range = pd.merge(date_range,new_date_range, how='outer')
+                            #if index == 2 and contract_name == "spo 24.11 to 24.11":
+                                #print(new_date_range)
                             new_date_range = self.optimize_invoice_offers(index, invoice, contract_name, contract_object, new_date_range, False)
                             
                             contract_date_range_dict[contract_name] = new_date_range
@@ -196,7 +211,9 @@ class Invoice:
                                 Index_contract_date_range_dict[index] = contract_date_range_dict
                                 
                                 index_price_dict[index] = date_range["total price"][0]
-                                
+                                if index == 2:
+                                    #print(new_date_range)
+                                    pass
                                 continue
                     
                     if not(index in index_price_dict) and self.statment.loc[index,"activity"] == 1:
@@ -206,7 +223,7 @@ class Invoice:
                 
 
                 # by arrival
-                if (contract_object.sbi["enable"]) and (invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date) and (invoice["Departure"] >= contract_object.contract_sheet["first date"][0] and invoice["Arrival"] <= contract_object.contract_sheet["second date"][-1]):
+                if (contract_object.sbi) and (invoice["Res_date"] >= contract_object.start_date and invoice["Res_date"] <= contract_object.end_date) and (invoice["Departure"] >= contract_object.contract_sheet["first date"][0] and invoice["Arrival"] <= contract_object.contract_sheet["second date"][-1]):
                     
                     date_range = contract_object.contract_sheet[(invoice["Arrival"] <= contract_object.contract_sheet["second date"]) & (invoice["Departure"] >= contract_object.contract_sheet["first date"])].reset_index(drop = True)
                     
@@ -226,7 +243,7 @@ if __name__ == "__main__":
     # Contract
     # FileUploader
     
-    file = FileUploader("test files\Biblio- Grand 23-24.Invo.xlsx")
+    file = FileUploader("test files\Biblio- Resort 23-24 . Invo.xlsx")
     invoice = Invoice(file)
     
-    print(invoice.output_statment["error_type"])
+    #print(invoice.output_statment["error_type"])

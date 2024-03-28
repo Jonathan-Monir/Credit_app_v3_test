@@ -2,15 +2,15 @@ import pandas as pd
 
 # To Do: 
 class Contract:
-    eb1 = {"enable":False,"percentage":10,"date":pd.to_datetime("01/11/2026")}
-    eb2 = {"enable":False,"percentage":10,"date":pd.to_datetime("01/11/2026")}
-    lt = {"enable":False,"percentage":10,"days":3}
-    senior = {"enable":False,"column":"contract","percentage":10}
-    reduc1 = {"enable":False,"column":"contract","percentage":10}
-    reduc2 = {"enable":False,"column":"contract","percentage":10}
-    extra = {"enable":False,"amount":100}
-    combinations = {"eb_lt":False,"eb_reduc":True,"eb_senior":False}
-    sbi = {"enable":False}
+    eb1 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
+    eb2 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
+    lt = {"enable":False,"percentage":0,"days":0}
+    senior = {"enable":False,"column":"","percentage":0}
+    reduc1 = {"enable":False,"column":"","percentage":0}
+    reduc2 = {"enable":False,"column":"","percentage":0}
+    extra = {"enable":False,"amount":0}
+    combinations = {"eb_lt":False,"eb_reduc":False,"eb_senior":False}
+    sbi = False
     
     def __init__(self, contract_name, contract_sheet, activity, Senior=senior, EarlyBooking1=eb1, EarlyBooking2=eb2, LongTerm=lt, Reduction1=reduc1, Reduction2=reduc2, combinations=combinations, start_date=None, end_date=None, sbi=sbi):
         
