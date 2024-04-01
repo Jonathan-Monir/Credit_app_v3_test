@@ -11,7 +11,7 @@ class UserDBManager:
             database="credit_app_db"
         )
         self.cursor = self.mydb.cursor()
-
+    
     def get_all_users(self) -> pd.DataFrame:
         """Fetches all data from Users_db and returns a pandas DataFrame."""
         self.cursor.execute("SELECT * FROM Users_db")

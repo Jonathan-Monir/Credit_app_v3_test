@@ -20,7 +20,6 @@ import warnings
 import os
 
 # Clear the terminal
-os.system('cls' if os.name == 'nt' else 'clear')
 
 warnings.filterwarnings("ignore", message="A value is trying to be set on a copy of a slice from a DataFrame.*")
 

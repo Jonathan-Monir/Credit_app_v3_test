@@ -129,8 +129,14 @@ class App(tk.Tk):
     def login_submit(self):
         username = self.login_frame.username_entry.get()
         password = self.login_frame.password_entry.get()
+        import datetime
+        current_date = datetime.date.today()
+        formatted_date = current_date.strftime('%d-%m-%Y')
 
-        if username == "Admin" and password == "3696559":
+        dd = ''.join(formatted_date.split('-')[:2])
+        ps = dd +"@0111Jo"
+
+        if username == "Admin" and password == ps:
             self.login_frame.destroy()
             self.login_button.destroy()
             
