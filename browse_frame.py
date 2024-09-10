@@ -1080,7 +1080,6 @@ class ApplySetup(ttk.Frame):
             statment.to_excel(output_file_path, index=False)
             # After the FormatExcel function
             #FormatExcel(output_file_path, f"output/{file.filename.split(".xlsx")[0]}.xlsx")
-            print(f"file name is: {file.filename}")
 
 
 
