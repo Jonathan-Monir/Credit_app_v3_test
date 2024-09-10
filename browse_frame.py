@@ -1,4 +1,5 @@
 from tkinter import *
+from format_excel import FormatExcel
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -68,7 +69,7 @@ class MainFrame(ttk.Frame):
         # # Create a frame with the custom style
         # self.frame = ttk.Frame(self, style="Gray.TFrame", width=200, height=200)
         # # self.pack(expand=True, fill="both")
-        
+
         global container
         container = []
         self.canvas = tk.Canvas(self, background="#f0f0f0", scrollregion=(0,0,self.winfo_width(),800))
@@ -124,6 +125,7 @@ class ExcelFileBrowserApp:
         global container
         container =  [FileUploader(file_path) for file_path in self.files]
         print(len(container), "Successfully installer")
+
     def remove_selected_files(self):
         selected_indices = self.listbox.curselection()
         for i in selected_indices[::-1]:  # Reversing the list to avoid shifting indexes
@@ -216,56 +218,94 @@ class ContractSetting(ttk.Frame):
         self.current_file = None
 
         tk.Label(self, text="choose file", font=("Helvetica", 10, "underline")).grid(row=0, column=0, sticky="w", padx=5, pady=10)
-
         self.setup_file = tk.Listbox(self, listvariable=tk.StringVar(value=[file.filename for file in container]))
+
         self.setup_file.bind('<Double-1>', self.refresh_page)  # Bind to selection event
+
         self.setup_file.grid(row=1, column=0, sticky="w", padx=5, pady=10, rowspan=8)  # Corrected this line
 
         tk.Label(self, text="change setup", font=("Helvetica", 10, "underline")).grid(column=0, sticky="w", padx=0, pady=0)
         table_names = list(get_tables().keys())
-
         table_names.insert(0, 'None')
+
         self.initialized_setup = ttk.Combobox(self, values=table_names)
         self.initialized_setup.grid(column=0, sticky="w", padx=5, pady=10)
         self.initialized_setup.bind("<<ComboboxSelected>>", self.refresh_page)
 
         # Button for deleting and deactivating a table
-        self.delete_button = tk.Button(self, text="Delete setup", command=self.deactivate_table_column)
+        self.delete_button = tk.Button(self, text="Delete setup", command=self.delete_table)
         self.delete_button.grid(row=0, column=0, padx=5, pady=15)
 
         self.contract_frame = ContractFrame(self)
         self.contract_frame.grid(column=0, columnspan=2)
 
+        # add spo to update
+        self.submit_button = tk.Button(self, text="Add SPO", command= self.add_spo)
+        self.submit_button.grid(columnspan=2, pady=10)
+
+        tk.Label(self, text="SPO Name", font=("Helvetica", 10, "underline")).grid(columnspan=2, pady=2)
+        self.spo_name = tk.Text(self, height = 1, width = 15)
+        self.spo_name.grid(columnspan=2, pady=2)
+
+    def add_spo(self):
+        self.contract_frame.destroy()
+
+        self.current_setup = get_offer_contract_data(self.initialized_setup.get())
+        for contract_name in self.current_setup.keys():
+            self.current_setup[contract_name] = { "eb1": self.current_setup[contract_name]["earlyBooking1"],
+                                                 "eb2": self.current_setup[contract_name]["earlyBooking2"],
+                                                 "reduc1": self.current_setup[contract_name]["reduction1"],
+                                                 "reduc2": self.current_setup[contract_name]["reduction2"],
+                                                 "lt": self.current_setup[contract_name]["longTerm"],
+                                                 "senior": self.current_setup[contract_name]["senior"],
+
+                                                 "combinations": self.current_setup[contract_name]["combinations"],
+                                                 "start_date": self.current_setup[contract_name]["start_date"],
+
+                                                 "end_date": self.current_setup[contract_name]["end_date"],
+                                                 "sbi": self.current_setup[contract_name]["sbi"],
+                                                 "active": self.current_setup[contract_name]["active"],
+
+                                                 }
+
+
+            self.current_setup[contract_name] = DotDict(self.current_setup[contract_name])
+        self.spo_name = self.spo_name.get("1.0", tk.END)
+        self.current_setup[self.spo_name] = self.current_setup[contract_name]
+
+
+        self.contract_frame = ContractFrame(self, self.current_file, self.current_setup)
+        self.contract_frame.grid(column = 0, columnspan=2)
 
     def refresh_page(self, event):
         
         
 
         self.contract_frame.destroy()
-        self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
 
         if not(len(self.initialized_setup.get()) == 0 ) and not(self.initialized_setup.get() == "None"):
             self.current_setup = get_offer_contract_data(self.initialized_setup.get())
             for contract_name in self.current_setup.keys():
                 self.current_setup[contract_name] = { "eb1": self.current_setup[contract_name]["earlyBooking1"],
-                    "eb2": self.current_setup[contract_name]["earlyBooking2"],
-                    "reduc1": self.current_setup[contract_name]["reduction1"],
-                    "reduc2": self.current_setup[contract_name]["reduction2"],
-                    "lt": self.current_setup[contract_name]["longTerm"],
-                    "senior": self.current_setup[contract_name]["senior"],
+                                                     "eb2": self.current_setup[contract_name]["earlyBooking2"],
+                                                     "reduc1": self.current_setup[contract_name]["reduction1"],
+                                                     "reduc2": self.current_setup[contract_name]["reduction2"],
+                                                     "lt": self.current_setup[contract_name]["longTerm"],
+                                                     "senior": self.current_setup[contract_name]["senior"],
 
-                    "combinations": self.current_setup[contract_name]["combinations"],
-                    "start_date": self.current_setup[contract_name]["start_date"],
+                                                     "combinations": self.current_setup[contract_name]["combinations"],
+                                                     "start_date": self.current_setup[contract_name]["start_date"],
 
-                    "end_date": self.current_setup[contract_name]["end_date"],
-                    "sbi": self.current_setup[contract_name]["sbi"],
+                                                     "end_date": self.current_setup[contract_name]["end_date"],
+                                                     "sbi": self.current_setup[contract_name]["sbi"],
+                                                     "active": self.current_setup[contract_name]["active"],
 
-                }
+                                                     }
 
                 self.current_setup[contract_name] = DotDict(self.current_setup[contract_name])
-            #print(self.current_setup.contract) 
         
-        else:
+        elif len(self.setup_file.curselection()) != 0:
+            self.current_file = self.name_contract_dict[self.setup_file.get(self.setup_file.curselection()[0])]
             self.current_setup = Invoice.make_contracts_dict(self,self.current_file.contracts_sheets,self.current_file.contracts_activity)
 
 
@@ -273,42 +313,99 @@ class ContractSetting(ttk.Frame):
         self.contract_frame.grid(column = 0, columnspan=2)
 
 
-    def deactivate_table_column(self):
+# im
+    def delete_table(self):
         # Connect to the database
         conn = sqlite3.connect('setups.db')
         cursor = conn.cursor()
         table_name = self.initialized_setup.get()
-        # Check if the column exists in the table
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns = cursor.fetchall()
-        active_column_exists = any(column[1] == 'active_table' for column in columns)
 
-        # If the column doesn't exist, add it to the table
-        if not active_column_exists:
-            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN active_table INTEGER DEFAULT 0")
+        # Check if the table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        table_exists = cursor.fetchone()
 
-        # Update all rows to set the value of 'active_table' column to 0
-        cursor.execute(f"UPDATE {table_name} SET active_table = 0")
+        # If the table exists, drop it
+        if table_exists:
+            cursor.execute(f"DROP TABLE {table_name}")
+            conn.commit()
+            conn.close()
+            self.refresh_page(None)
+            print(f"Table '{table_name}' has been deleted.")
+        else:
+            print(f"Table '{table_name}' does not exist.")
 
-        # Commit the changes and close the connection
-        conn.commit()
-        conn.close()        
-        self.refresh_page(None)
-# import tkinter as tk
 from tkinter import messagebox
-
 class ContractFrame(tk.Frame):
     def __init__(self, master=None, current_file=None, initialized_setup=None, **kwargs):
         super().__init__(master, **kwargs)
-        self.master = master
 
-        if not current_file:
+        if not current_file and not initialized_setup:
             
             tk.Label(self, text="Please choose a file to make the setup", font=("Helvetica", 24)).grid(row=0, column=0, sticky="w", padx=0, pady=0)
+        
+        elif initialized_setup and not current_file:
+            current_file = None
+            self.initialized_setup = initialized_setup
+            
+            
+            tk.Label(self, text="Setup name", font=("Helvetica", 10, "underline")).grid(row=1, column=0, sticky="w", padx=0, pady=0)
+            self.setup_name = tk.Text(self, height = 1, width = 15)
+            self.setup_name.grid(row=2, column=0, sticky="w", padx=5, pady=10)
+            
+            
+            #down
+            pathtophoto = Image.open(resource_path(r"images\RD.png")).resize((25,25))
+            Down = ImageTk.PhotoImage(pathtophoto)
+            panel1 = Label(self, image=Down)
+            panel1.image = Down #keep a reference
+            
+            #up
+            pathtophoto = Image.open(resource_path(r"images\RU.png")).resize((25,25))
+            Up = ImageTk.PhotoImage(pathtophoto)
+            panel1 = Label(self, image=Up)
+            panel1.image = Up #keep a reference
+            
+            #up
+            pathtophoto = Image.open(resource_path(r"images\Delete.png")).resize((25,25))
+            Delete = ImageTk.PhotoImage(pathtophoto)
+            panel1 = Label(self, image=Delete)
+            panel1.image = Delete #keep a reference
+
+            max_iter = 3
+            rank = 1 
+
+            self.entries_dict = {}
+            
+            
+            self.active_app = True
+            
+            
+            for contract_name, contract_sheet in self.initialized_setup.items():
+
+                if contract_sheet['active']:
+                    self.entries_dict[contract_name] = CreateWidgets(self, contract_name=contract_name, contract_sheet=contract_sheet, rank=rank, max_iter=max_iter, Down=Down, Up=Up, Delete=Delete, statment_columns=None, initialized_setup=self.initialized_setup)
+                    self.entries_dict[contract_name].grid(pady=20)
+                    rank+=1
+                
+                else:
+                    # show contract_name error in tkinter as a label in red
+                    tk.Label(self, text=f"{contract_name} has an error", font=("Helvetica", 10, "underline"), fg="red").grid(column=0, sticky="w", padx=5, pady=5)
+                    self.active_app = False
+                
+            if not(self.active_app):
+                
+                messagebox.showwarning("Warning", "There are contracts that are not active and may lead to errors")
+            
+            # Button
+            self.submit_button = tk.Button(self, text="Submit", command=lambda: self.submit(is_setup=True))
+            self.submit_button.grid(columnspan=2, pady=10)
 
         else:
             self.initialized_setup = initialized_setup
             self.current_file = current_file
+            
+
+            
             contracts_activity = current_file.contracts_activity
             
             #if not initialized_setup:
@@ -362,58 +459,8 @@ class ContractFrame(tk.Frame):
                 
                 messagebox.showwarning("Warning", "There are contracts that are not active and may lead to errors")
             
-            # self.reductions = {}
-            # for prop in ["enable","amount","column"]:
-            #     if prop == "enable":
-            #         self.reductions["rwa " + prop] = tk.BooleanVar()
-            #         self.reductions["rwp " + prop] = tk.BooleanVar()
-            #         self.reductions["ewa " + prop] = tk.BooleanVar()
-            #     if prop == "amount":
-            #         self.reductions["rwa " + prop] = tk.Entry()
-            #         self.reductions["rwp " + prop] = tk.Entry()
-            #         self.reductions["ewa " + prop] = tk.Entry()
-
-            # # reduction amount
-            # tk.Label(self, text="Reduction with amount", font=("Helvetica", 10, "underline")).grid(row=100, column=0, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="Enable").grid(row=101, column=0, sticky="w", padx=5, pady=5)
-            # tk.Checkbutton(self, variable=self.reductions["rwa enable"]).grid(row=101, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="amount").grid(row=102, column=0, sticky="w", padx=5, pady=5)
-            # self.reductions["rwa amount"].grid(row=102, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="column").grid(row=102, column=2, sticky="w", padx=5, pady=5)
-            # self.reductions["rwa column"] = ttk.Combobox(self, values=list(statment_columns))
-            # self.reductions["rwa column"].grid(row=102, column=3)
-            
-            # # reduction percentage
-            # tk.Label(self, text="Reduction with percentage", font=("Helvetica", 10, "underline")).grid(row=103, column=0, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="Enable").grid(row=104, column=0, sticky="w", padx=5, pady=5)
-            # tk.Checkbutton(self, variable=self.reductions["rwp Enable"]).grid(row=104, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="percentage").grid(row=105, column=0, sticky="w", padx=5, pady=5)
-            # self.reductions["rwp amount"].grid(row=105, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="column").grid(row=106, column=2, sticky="w", padx=5, pady=5)
-            # self.reductions["rwp Column"] = ttk.Combobox(self, values=list(statment_columns))
-            # self.reductions["rwp Column"].grid(row=106, column=3)
-            
-            # extra amount
-            # tk.Label(self, text="Reduction 1", font=("Helvetica", 10, "underline")).grid(row=107, column=0, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="Enable").grid(row=108, column=0, sticky="w", padx=5, pady=5)
-            # tk.Checkbutton(self, variable=self.entries["Reduc1 Enable"]).grid(row=108, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="Reduction 1 percentage").grid(row=109, column=0, sticky="w", padx=5, pady=5)
-            # self.entries["Reduc1 Percentage"].grid(row=109, column=1, sticky="w", padx=5, pady=5)
-
-            # tk.Label(self, text="Reduction 1 column").grid(row=109, column=2, sticky="w", padx=5, pady=5)
-            # self.entries["Reduc1 Column"] = ttk.Combobox(self, values=list(statment_columns))
-            # self.entries["Reduc1 Column"].grid(row=109, column=3)
-
             # Button
-            self.submit_button = tk.Button(self, text="Submit", command=self.submit)
+            self.submit_button = tk.Button(self, text="Submit", command=lambda: self.submit(is_setup=False))
             self.submit_button.grid(columnspan=2, pady=10)
             
     def on_combobox_select(self, event):
@@ -422,9 +469,12 @@ class ContractFrame(tk.Frame):
         
 
     
-    def submit(self):
+    def submit(self, is_setup=False):
         
         
+        if is_setup:
+            self.current_file = self.initialized_setup
+
         # make a code that will get the name of the tables from setups.db
         import sqlite3
         
@@ -444,138 +494,140 @@ class ContractFrame(tk.Frame):
         table_list = [name[0] for name in table_names]
         
         
-        if len(self.setup_name.get("1.0", "end-1c")) !=0 and self.setup_name.get("1.0", "end-1c") not in table_list:
-                
-            contract_params = {}
-            global global_setup_name
-
-            eb1 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
-            eb2 = {"enable":False,"percentage":0,"date":pd.to_datetime("01/11/2026")}
-            lt = {"enable":False,"percentage":0,"days":0}
-            senior = {"enable":False,"column":"","percentage":0}
-            reduc1 = {"enable":False,"column":"","percentage":0}
-            reduc2 = {"enable":False,"column":"","percentage":0}
-            extra = {"enable":False,"amount":0}
-            combinations = {"eb_lt":False,"eb_reduc":False}
-
-            start_date = {"date":pd.to_datetime("01/11/2026")}
-            end_date = {"date":pd.to_datetime("01/11/2026")}
-            
-            self.contract_activities = self.current_file.contracts_activity
-            
-            all_offer_contract_dict = {}
-            
-            offers_per_contract = {}
-            for contract_name, contract_sheet in self.current_file.contracts_sheets.items():
-                offers = {}
-                eb1 = {}
-                eb2 = {}
-                lt = {}
-                senior = {}
-                reduc1 = {}
-                reduc2 = {}
-                combinations = {}  # Assuming this is defined elsewhere in your code
-                start_date = None  # Initialize to None
-                end_date = None    # Initialize to None
-
-                for name, entry in self.entries_dict[contract_name].get_entries().items():
-                    
-                    if name == "EB1 Enable":
-                        eb1["enable"] = entry
-                        
-                    if name == "EB1 Percentage":
-                        eb1["percentage"] = entry
-
-                    if name == "EB1 Date":
-                        eb1["date"] = entry
-
-                    if name == "EB2 Enable":
-                        eb2["enable"] = entry
-
-                    if name == "EB2 Percentage":
-                        eb2["percentage"] = entry
-
-                    if name == "EB2 Date":
-                        eb2["date"] = entry
-
-                    if name == "LT Enable":
-                        lt["enable"] = entry
-
-                    if name == "LT Percentage":
-                        lt["percentage"] = entry
-
-                    if name == "LT Days":
-                        lt["days"] = entry
-
-                    if name == "Senior Enable":
-                        senior["enable"] = entry
-
-                    if name == "Senior Percentage":
-                        senior["percentage"] = entry
-
-                    if name == "Senior Column":
-                        senior["column"] = entry
-
-                    if name == "Reduc1 Enable":
-                        reduc1["enable"] = entry
-
-                    if name == "Reduc1 Column":
-                        reduc1["column"] = entry
-
-                    if name == "Reduc1 Percentage":
-                        reduc1["percentage"] = entry
-
-                    if name == "Reduc2 Enable":
-                        reduc2["enable"] = entry
-
-                    if name == "Reduc2 Column":
-                        reduc2["column"] = entry
-
-                    if name == "Reduc2 Percentage":
-                        reduc2["percentage"] = entry
-                    
-                    if name == "Combinations EB_LT":
-                        combinations["eb_lt"] = entry
-                    
-                    if name == "Combinations EB_Reduc":
-                        combinations["eb_reduc"] = entry
-
-                    if name == "Combinations EB_Senior":
-                        combinations["eb_senior"] = entry
-
-                    if name == "From date":
-                        start_date = entry
-
-                    if name == "To date":
-                        end_date = entry
-
-                    if name == "sbi":
-                        sbi = entry
-
-                offers["eb1"]=eb1
-                offers["eb2"]=eb2
-                offers["lt"]=lt
-                offers["senior"]=senior
-                offers["reduc1"]=reduc1
-                offers["reduc2"]=reduc2
-                offers["combinations"]=combinations
-                offers["start_date"]=start_date
-                offers["end_date"]=end_date
-                offers["sbi"]=sbi
-                
-                offers_per_contract[contract_name] = offers
-                
-            all_offer_contract_dict[self.setup_name.get("1.0", "end-1c")] = offers_per_contract
-            
-
-            self.save_to_database(all_offer_contract_dict)
+        setup_name = self.setup_name.get("1.0", "end-1c")
         
-        elif len(self.setup_name.get("1.0", "end-1c")) ==0:
-            tk.Label(self, text="please insert a name text in setup file").grid()
-            
-        elif len(self.setup_name.get("1.0", "end-1c")) not in table_list:
-            tk.Label(self, text="name reapeted text in setup file").grid()
+        if len(setup_name) == 0:
+            tk.Label(self, text="Please insert a name text in setup file").grid()
+            return
+        
+        if setup_name in table_list:
+            # Prompt the user with a message box
+            overwrite = messagebox.askyesno("Overwrite Confirmation", f"Setup name '{setup_name}' already exists. Do you want to overwrite it?")
+            if not overwrite:
+                return
+            else:
+                # Delete the old table
+                self.delete_table(setup_name)
 
+        contract_params = {}
+        global global_setup_name
+
+        eb1 = {"enable": False, "percentage": 0, "date": pd.to_datetime("01/11/2026")}
+        eb2 = {"enable": False, "percentage": 0, "date": pd.to_datetime("01/11/2026")}
+        lt = {"enable": False, "percentage": 0, "days": 0}
+        senior = {"enable": False, "column": "", "percentage": 0}
+        reduc1 = {"enable": False, "column": "", "percentage": 0}
+        reduc2 = {"enable": False, "column": "", "percentage": 0}
+        extra = {"enable": False, "amount": 0}
+        combinations = {"eb_lt": False, "eb_reduc": False}
+        start_date = {"date": pd.to_datetime("01/11/2026")}
+        end_date = {"date": pd.to_datetime("01/11/2026")}
+        
+        if not is_setup:
+            self.contract_activities = self.current_file.contracts_activity
+        
+        all_offer_contract_dict = {}
+        offers_per_contract = {}
+        
+        if is_setup:
+            sheets = self.initialized_setup
+        else:
+            sheets = self.current_file.contracts_sheets
+        
+        for contract_name, contract_sheet in sheets.items():
+            offers = {}
+            eb1 = {}
+            eb2 = {}
+            lt = {}
+            senior = {}
+            reduc1 = {}
+            reduc2 = {}
+            combinations = {}
+            start_date = None
+            end_date = None
+
+            for name, entry in self.entries_dict[contract_name].get_entries().items():
+                if name == "EB1 Enable":
+                    eb1["enable"] = entry
+                if name == "EB1 Percentage":
+                    eb1["percentage"] = entry
+                if name == "EB1 Date":
+                    eb1["date"] = entry
+                if name == "EB2 Enable":
+                    eb2["enable"] = entry
+                if name == "EB2 Percentage":
+                    eb2["percentage"] = entry
+                if name == "EB2 Date":
+                    eb2["date"] = entry
+                if name == "LT Enable":
+                    lt["enable"] = entry
+                if name == "LT Percentage":
+                    lt["percentage"] = entry
+                if name == "LT Days":
+                    lt["days"] = entry
+                if name == "Senior Enable":
+                    senior["enable"] = entry
+                if name == "Senior Percentage":
+                    senior["percentage"] = entry
+                if name == "Senior Column":
+                    senior["column"] = entry
+                if name == "Reduc1 Enable":
+                    reduc1["enable"] = entry
+                if name == "Reduc1 Column":
+                    reduc1["column"] = entry
+                if name == "Reduc1 Percentage":
+                    reduc1["percentage"] = entry
+                if name == "Reduc2 Enable":
+                    reduc2["enable"] = entry
+                if name == "Reduc2 Column":
+                    reduc2["column"] = entry
+                if name == "Reduc2 Percentage":
+                    reduc2["percentage"] = entry
+                if name == "Combinations EB_LT":
+                    combinations["eb_lt"] = entry
+                if name == "Combinations EB_Reduc":
+                    combinations["eb_reduc"] = entry
+                if name == "Combinations EB_Senior":
+                    combinations["eb_senior"] = entry
+                if name == "From date":
+                    start_date = entry
+                if name == "To date":
+                    end_date = entry
+                if name == "sbi":
+                    sbi = entry
+
+            offers["eb1"] = eb1
+            offers["eb2"] = eb2
+            offers["lt"] = lt
+            offers["senior"] = senior
+            offers["reduc1"] = reduc1
+            offers["reduc2"] = reduc2
+            offers["combinations"] = combinations
+            offers["start_date"] = start_date
+            offers["end_date"] = end_date
+            offers["sbi"] = sbi
+
+            offers_per_contract[contract_name] = offers
+
+        all_offer_contract_dict[setup_name] = offers_per_contract
+        self.save_to_database(all_offer_contract_dict)
+
+    def delete_table(self, setup_name):
+        try:
+            # Connect to your SQLite database
+            conn = sqlite3.connect('setups.db')
+            cursor = conn.cursor()
+            
+            # Delete the table
+            cursor.execute(f"DROP TABLE IF EXISTS {setup_name}")
+            
+            # Commit the changes and close the connection
+            conn.commit()
+            conn.close()
+            
+            print(f"Table '{setup_name}' deleted successfully.")
+        except sqlite3.Error as e:
+            print(f"An error occurred while deleting the table: {e}")
 
     def save_to_database(self, all_offer_contract_dict):
         # Connect to the SQLite database
@@ -658,6 +710,9 @@ class ContractFrame(tk.Frame):
             
 class CreateWidgets(tk.Frame):
     def __init__(self, master, contract_name, contract_sheet, rank, max_iter, Down, Up, Delete, statment_columns, initialized_setup):
+        if statment_columns == None:
+            statment_columns = ['Booking No.', 'Invoice No.', 'Res_date', 'Arrival', 'Departure','Rate code', 'Night', 'Rate $', 'Amount-hotel', 'activity', 'error_type', 'date_check', 'earlyBooking1', 'earlyBooking2', 'senior', 'longTerm', 'Reduction1', 'Reduction2']
+
         super().__init__(master)
         self.entries = {}
         self.labels = ["EB1 Enable", "EB1 Percentage", "EB1 Date",
@@ -882,7 +937,7 @@ class CreateWidgets(tk.Frame):
         return updated_entries
 
 
-##########################################################################################################
+################################################################################################################################################################################################################################################################################################################
 ##########################################################################################################
 ##########################################################################################################
 ##########################################################################################################
@@ -992,11 +1047,13 @@ class ApplySetup(ttk.Frame):
             date_prices = invoice.Index_contract_date_range_dict
 
             statment = invoice.output_statment
-            output_folder = "output"
+            output_folder = "output/cache"
             # Create the output folder if it doesn't exist
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
+            if not(os.path.exists("output/cache")):
+                os.mkdir("output/cache")
             # Path to the output file
             output_file_path = os.path.join(output_folder, f"{file.filename}_output.xlsx")
 
@@ -1019,55 +1076,54 @@ class ApplySetup(ttk.Frame):
                 
                 DifferenceTable(self, statment, file.filename).grid()
             
-            # cols_to_drop = statment.columns[~(statment != 0).any()]
-            # columns_to_keep = ['Difference']
-            # # Drop the selected columns, creating a new DataFrame
-            # statment_filtered = statment.drop(columns=list(set(cols_to_drop) - set(columns_to_keep)), inplace=True)
 
             statment.to_excel(output_file_path, index=False)
+            # After the FormatExcel function
+            FormatExcel(output_file_path, f"output/{file.filename.split(".xlsx")[0]}.xlsx")
+            print(f"file name is: {file.filename}")
+
+
+
+
 
 def get_tables():
     db_file = 'setups.db'
-    try:
-        # Connect to the SQLite database
-        conn = sqlite3.connect(db_file)
-        cursor = conn.cursor()
+    
+    # Connect to the SQLite database
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
 
-        # Get a list of all tables in the database
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
+    # Get a list of all tables in the database
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
 
-        # Create a dictionary to store tables and their values
-        tables_and_values = {}
+    # Create a dictionary to store tables and their values
+    tables_and_values = {}
 
-        # Iterate over each table
-        for table in tables:
-            table_name = table[0]
+    # Iterate over each table
+    for table in tables:
+        table_name = table[0]
 
-            # Check if the table has the 'active_table' column
-            cursor.execute(f"PRAGMA table_info({table_name});")
-            columns = cursor.fetchall()
-            column_names = [column[1] for column in columns]
-            if 'active_table' not in column_names:
-                # If 'active_table' column doesn't exist, add it with default value 1
-                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN active_table INTEGER DEFAULT 1;")
-                conn.commit()
+        # Check if the table has the 'active_table' column
+        cursor.execute(f"PRAGMA table_info({table_name});")
+        columns = cursor.fetchall()
+        column_names = [column[1] for column in columns]
+        if 'active_table' not in column_names:
+            # If 'active_table' column doesn't exist, add it with default value 1
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN active_table INTEGER DEFAULT 1;")
+            conn.commit()
 
-            # Fetch all rows from the table
-            cursor.execute(f"SELECT * FROM {table_name} WHERE active_table = 1;")
-            rows = cursor.fetchall()
-            # Store the rows in the dictionary
-            if rows:
-                tables_and_values[table_name] = rows
+        # Fetch all rows from the table
+        cursor.execute(f"SELECT * FROM {table_name} WHERE active_table = 1;")
+        rows = cursor.fetchall()
+        # Store the rows in the dictionary
+        if rows:
+            tables_and_values[table_name] = rows
 
-        # Close the database connection
-        conn.close()
+    # Close the database connection
+    conn.close()
 
-        return tables_and_values
-
-    except sqlite3.Error as e:
-        print("SQLite error:", e)
-        return None
+    return tables_and_values
 
 
 
@@ -1134,7 +1190,6 @@ def parse_date(date_string):
             except ValueError:
                 continue
 
-        # If none of the formats matched, return None or handle the case as per your requirement
         return None
     return None
 
@@ -1174,7 +1229,7 @@ class DifferenceTable(ttk.Frame):
         
 if __name__ == "__main__":
     global container
-    container = [FileUploader("test files\Biblio- Resort 23-24 . Invo.xlsx")]
+    container = [FileUploader("test files\index Invo.xlsx")]
     root = tk.Tk()
     root.geometry("800x600")
     app = SetupContract(root)
