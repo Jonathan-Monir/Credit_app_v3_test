@@ -1047,13 +1047,13 @@ class ApplySetup(ttk.Frame):
             date_prices = invoice.Index_contract_date_range_dict
 
             statment = invoice.output_statment
-            output_folder = "output/cache"
+            output_folder = "output"
             # Create the output folder if it doesn't exist
             if not os.path.exists(output_folder):
                 os.makedirs(output_folder)
 
-            if not(os.path.exists("output/cache")):
-                os.mkdir("output/cache")
+            if not(os.path.exists(output_folder)):
+                os.mkdir(output_folder)
             # Path to the output file
             output_file_path = os.path.join(output_folder, f"{file.filename}_output.xlsx")
 
@@ -1079,7 +1079,7 @@ class ApplySetup(ttk.Frame):
 
             statment.to_excel(output_file_path, index=False)
             # After the FormatExcel function
-            FormatExcel(output_file_path, f"output/{file.filename.split(".xlsx")[0]}.xlsx")
+            #FormatExcel(output_file_path, f"output/{file.filename.split(".xlsx")[0]}.xlsx")
             print(f"file name is: {file.filename}")
 
 
